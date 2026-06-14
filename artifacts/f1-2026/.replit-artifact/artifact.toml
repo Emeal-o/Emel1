@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "F1 2026 Season"
+version = "1.0.0"
+id = "artifacts/f1-2026"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23776
+
+[services.development]
+run = "pnpm --filter @workspace/f1-2026 run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/f1-2026", "run", "build" ]
+publicDir = "artifacts/f1-2026/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23776"
+BASE_PATH = "/"

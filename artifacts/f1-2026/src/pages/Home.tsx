@@ -33,7 +33,13 @@ export default function Home() {
 
   const schedule = useF1Schedule();
   const standings = useF1Standings();
-  const resultsState = useF1Results();
+
+  const completedRounds =
+    schedule.status === "success"
+      ? schedule.races.filter((r) => r.status === "completed").map((r) => r.round)
+      : [];
+
+  const resultsState = useF1Results(completedRounds);
 
   const isLive = schedule.status === "success" || standings.status === "success";
   const hasAnyError = schedule.status === "error" && standings.status === "error";

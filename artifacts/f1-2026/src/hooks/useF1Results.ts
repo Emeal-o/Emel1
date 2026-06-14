@@ -25,52 +25,70 @@ export type RaceResultSet = {
 };
 
 type ResultsState =
+  | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "success"; byRound: Map<number, RaceResultSet> };
 
-const URL = "https://api.jolpi.ca/ergast/f1/2026/results.json?limit=500";
+function parseRound(race: any): RaceResultSet {
+  const results: RaceResult[] = (race.Results ?? []).map((r: any) => ({
+    position: parseInt(r.position, 10),
+    driverId: r.Driver.driverId,
+    code: r.Driver.code,
+    number: r.Driver.permanentNumber,
+    givenName: r.Driver.givenName,
+    familyName: r.Driver.familyName,
+    nationality: r.Driver.nationality,
+    team: r.Constructor.name,
+    teamId: r.Constructor.constructorId,
+    grid: parseInt(r.grid, 10),
+    laps: parseInt(r.laps, 10),
+    status: r.status,
+    time: r.Time?.time ?? r.status,
+    points: r.points,
+    fastestLap: r.FastestLap?.rank === "1",
+  }));
+  return { round: parseInt(race.round, 10), raceName: race.raceName, results };
+}
 
-export function useF1Results(): ResultsState {
-  const [state, setState] = useState<ResultsState>({ status: "loading" });
+export function useF1Results(completedRounds: number[]): ResultsState {
+  const [state, setState] = useState<ResultsState>({ status: "idle" });
+
+  // Use a stable key to avoid unnecessary re-fetches
+  const roundsKey = completedRounds.join(",");
 
   useEffect(() => {
+    if (completedRounds.length === 0) {
+      setState({ status: "idle" });
+      return;
+    }
     let cancelled = false;
-    fetch(URL)
-      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then((data) => {
-        if (cancelled) return;
-        const races: any[] = data?.MRData?.RaceTable?.Races ?? [];
-        const byRound = new Map<number, RaceResultSet>();
-        for (const race of races) {
-          const round = parseInt(race.round, 10);
-          const results: RaceResult[] = (race.Results ?? []).map((r: any) => ({
-            position: parseInt(r.position, 10),
-            driverId: r.Driver.driverId,
-            code: r.Driver.code,
-            number: r.Driver.permanentNumber,
-            givenName: r.Driver.givenName,
-            familyName: r.Driver.familyName,
-            nationality: r.Driver.nationality,
-            team: r.Constructor.name,
-            teamId: r.Constructor.constructorId,
-            grid: parseInt(r.grid, 10),
-            laps: parseInt(r.laps, 10),
-            status: r.status,
-            time: r.Time?.time ?? r.status,
-            points: r.points,
-            fastestLap: r.FastestLap?.rank === "1",
-          }));
-          byRound.set(round, { round, raceName: race.raceName, results });
-        }
-        setState({ status: "success", byRound });
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setState({ status: "error", message: err.message ?? "Failed to load results" });
-      });
+    setState({ status: "loading" });
+
+    // Fetch every completed round individually in parallel
+    const fetches = completedRounds.map((round) =>
+      fetch(`https://api.jolpi.ca/ergast/f1/2026/${round}/results.json`)
+        .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status} for round ${round}`); return r.json(); })
+        .then((data) => {
+          const race = data?.MRData?.RaceTable?.Races?.[0];
+          if (!race) return null;
+          return parseRound(race);
+        })
+        .catch(() => null) // Don't fail everything if one round is missing
+    );
+
+    Promise.all(fetches).then((results) => {
+      if (cancelled) return;
+      const byRound = new Map<number, RaceResultSet>();
+      for (const r of results) {
+        if (r && r.results.length > 0) byRound.set(r.round, r);
+      }
+      setState({ status: "success", byRound });
+    });
+
     return () => { cancelled = true; };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundsKey]);
 
   return state;
 }

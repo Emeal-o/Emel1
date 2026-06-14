@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useF1Schedule } from "../hooks/useF1Schedule";
 import { useF1Standings } from "../hooks/useF1Standings";
 import { useF1Results } from "../hooks/useF1Results";
+import { useF1Qualifying } from "../hooks/useF1Qualifying";
 import Countdown from "../components/Countdown";
 import RaceCard from "../components/RaceCard";
 import SessionLegend from "../components/SessionLegend";
@@ -40,6 +41,7 @@ export default function Home() {
       : [];
 
   const resultsState = useF1Results(completedRounds);
+  const qualifyingState = useF1Qualifying(completedRounds);
 
   const isLive = schedule.status === "success" || standings.status === "success";
   const hasAnyError = schedule.status === "error" && standings.status === "error";
@@ -162,6 +164,11 @@ export default function Home() {
                           results={
                             resultsState.status === "success"
                               ? resultsState.byRound.get(race.round)
+                              : undefined
+                          }
+                          qualifying={
+                            qualifyingState.status === "success"
+                              ? qualifyingState.byRound.get(race.round)
                               : undefined
                           }
                         />

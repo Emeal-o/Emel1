@@ -1,23 +1,28 @@
 import { useState } from "react";
 import { RaceData } from "../data/calendar";
 import { RaceResultSet } from "../hooks/useF1Results";
+import { QualifyingSet } from "../hooks/useF1Qualifying";
 import { ChevronDown, ChevronUp, MapPin, Zap, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RaceResults from "./RaceResults";
+import QualifyingResults from "./QualifyingResults";
 
 export default function RaceCard({
   race,
   isNext,
   results,
+  qualifying,
 }: {
   race: RaceData;
   isNext?: boolean;
   results?: RaceResultSet;
+  qualifying?: QualifyingSet;
 }) {
   const [expanded, setExpanded] = useState(isNext);
-  const [activeInner, setActiveInner] = useState<"sessions" | "results">("sessions");
+  const [activeInner, setActiveInner] = useState<"sessions" | "qualifying" | "results">("sessions");
   const isPast = race.status === "completed";
   const hasResults = isPast && !!results;
+  const hasQualifying = isPast && !!qualifying;
 
   const TZ = "Asia/Riyadh";
 
@@ -131,28 +136,32 @@ export default function RaceCard({
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden border-t border-border/50 bg-black/20"
           >
-            {/* Inner tabs for completed races that have results */}
-            {hasResults && (
+            {/* Inner tabs for completed races */}
+            {(hasResults || hasQualifying) && (
               <div className="flex gap-0 border-b border-border/50">
-                {(["sessions", "results"] as const).map((tab) => (
+                {([
+                  { id: "sessions", label: "Sessions" },
+                  ...(hasQualifying ? [{ id: "qualifying", label: "Qualifying" }] : []),
+                  ...(hasResults ? [{ id: "results", label: "Race Results" }] : []),
+                ] as { id: "sessions" | "qualifying" | "results"; label: string }[]).map((tab) => (
                   <button
-                    key={tab}
-                    data-testid={`inner-tab-${race.round}-${tab}`}
-                    onClick={() => setActiveInner(tab)}
+                    key={tab.id}
+                    data-testid={`inner-tab-${race.round}-${tab.id}`}
+                    onClick={() => setActiveInner(tab.id)}
                     className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px
-                      ${activeInner === tab
+                      ${activeInner === tab.id
                         ? "text-foreground border-primary"
                         : "text-muted-foreground border-transparent hover:text-foreground/70"
                       }`}
                   >
-                    {tab === "sessions" ? "Sessions" : "Race Results"}
+                    {tab.label}
                   </button>
                 ))}
               </div>
             )}
 
             <div className="p-5">
-              {(!hasResults || activeInner === "sessions") && (
+              {activeInner === "sessions" && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {race.sessions.map((session) => (
                     <div
@@ -168,6 +177,10 @@ export default function RaceCard({
                     </div>
                   ))}
                 </div>
+              )}
+
+              {hasQualifying && activeInner === "qualifying" && (
+                <QualifyingResults results={qualifying.results} />
               )}
 
               {hasResults && activeInner === "results" && (

@@ -22,11 +22,13 @@ export default function RaceCard({ race, isNext }: { race: RaceData; isNext?: bo
     }
   };
 
+  const TZ = "Asia/Riyadh"; // UTC+3, no DST
+
   const formatDate = (dateStr: string) =>
-    new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(new Date(dateStr));
+    new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ }).format(new Date(dateStr));
 
   const formatTime = (dateStr: string) =>
-    new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short" }).format(new Date(dateStr));
+    new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: TZ }).format(new Date(dateStr)) + " UTC+3";
 
   return (
     <motion.div

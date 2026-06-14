@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RaceData, SessionInfo, findNextSession } from "../data/calendar";
+import { RaceData, findNextSession } from "../data/calendar";
 import { Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -39,28 +39,30 @@ export default function Countdown({ races }: { races: RaceData[] }) {
   };
 
   return (
-    <div className="w-full flex flex-col md:flex-row items-stretch md:items-center justify-between border border-border bg-card p-6 rounded-xl shadow-lg relative overflow-hidden gap-6">
+    <div className="w-full flex flex-col md:flex-row items-stretch md:items-center justify-between border border-border bg-card rounded-xl shadow-lg relative overflow-hidden gap-4 p-4 sm:p-6">
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
-      <div className="flex flex-col gap-2 z-10">
-        <div className="flex items-center gap-2 text-primary font-bold tracking-widest text-sm uppercase">
-          <Clock className="w-4 h-4 animate-pulse" />
+      {/* Race info */}
+      <div className="flex flex-col gap-1.5 z-10 min-w-0">
+        <div className="flex items-center gap-2 text-primary font-bold tracking-widest text-xs uppercase">
+          <Clock className="w-3.5 h-3.5 animate-pulse shrink-0" />
           <span>Next Session</span>
         </div>
-        <h2 className="text-3xl font-black uppercase text-foreground leading-tight" data-testid="countdown-race-name">
+        <h2 className="text-2xl sm:text-3xl font-black uppercase text-foreground leading-tight truncate" data-testid="countdown-race-name">
           {nextRace.name}
         </h2>
-        <div className="flex items-center gap-2 text-muted-foreground font-mono text-sm">
-          <span className="text-foreground font-bold px-2 py-0.5 rounded bg-muted/50 border border-border/50 text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground font-mono text-xs flex-wrap">
+          <span className="text-foreground font-bold px-1.5 py-0.5 rounded bg-muted/50 border border-border/50 shrink-0">
             {nextSession.name}
           </span>
-          <span>{sessionLabel[nextSession.name] ?? nextSession.name}</span>
-          <span className="text-border">·</span>
-          <span>{nextRace.circuit}</span>
+          <span className="truncate">{sessionLabel[nextSession.name] ?? nextSession.name}</span>
+          <span className="text-border shrink-0">·</span>
+          <span className="truncate">{nextRace.circuit}</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 z-10">
+      {/* Countdown digits — responsive row that always fits */}
+      <div className="flex items-center justify-between sm:justify-end gap-1 sm:gap-3 z-10 w-full md:w-auto">
         <TimeUnit value={pad(days)} label="Days" />
         <Colon />
         <TimeUnit value={pad(hours)} label="Hrs" />
@@ -74,21 +76,21 @@ export default function Countdown({ races }: { races: RaceData[] }) {
 }
 
 function Colon() {
-  return <span className="text-3xl font-bold text-muted-foreground pb-6">:</span>;
+  return <span className="text-xl sm:text-3xl font-bold text-muted-foreground pb-4 sm:pb-6 shrink-0">:</span>;
 }
 
 function TimeUnit({ value, label, highlight = false }: { value: string; label: string; highlight?: boolean }) {
   return (
-    <div className="flex flex-col items-center min-w-[64px]" data-testid={`countdown-${label.toLowerCase()}`}>
+    <div className="flex flex-col items-center min-w-0 flex-1 sm:flex-none sm:min-w-[56px]" data-testid={`countdown-${label.toLowerCase()}`}>
       <motion.div
         key={value}
         initial={{ y: 4, opacity: 0.5 }}
         animate={{ y: 0, opacity: 1 }}
-        className={`text-4xl md:text-5xl font-mono font-bold tracking-tighter ${highlight ? "text-primary" : "text-foreground"}`}
+        className={`text-3xl sm:text-4xl md:text-5xl font-mono font-bold tracking-tighter ${highlight ? "text-primary" : "text-foreground"}`}
       >
         {value}
       </motion.div>
-      <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">{label}</span>
+      <span className="text-[9px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-0.5 sm:mt-1">{label}</span>
     </div>
   );
 }

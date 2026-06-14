@@ -71,12 +71,12 @@ export default function RaceResults({ results }: { results: RaceResult[] }) {
 
       {/* Full grid */}
       <div className="border border-border/50 rounded-xl overflow-hidden bg-black/20">
-        <div className="grid grid-cols-[2rem_auto_1fr_auto_auto] gap-x-3 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border/50 bg-black/20">
+        <div className="grid grid-cols-[1.5rem_auto_1fr_auto] sm:grid-cols-[2rem_auto_1fr_auto_auto] gap-x-2 sm:gap-x-3 px-3 sm:px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border/50 bg-black/20">
           <span>P</span>
           <span></span>
           <span>Driver</span>
           <span className="text-right">Pts</span>
-          <span className="text-right w-24">Time / Status</span>
+          <span className="text-right hidden sm:block w-24">Time / Status</span>
         </div>
         {rest.map((driver, i) => (
           <motion.div
@@ -85,28 +85,28 @@ export default function RaceResults({ results }: { results: RaceResult[] }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.05 + i * 0.02 }}
             data-testid={`result-row-${driver.position}`}
-            className="grid grid-cols-[2rem_auto_1fr_auto_auto] gap-x-3 px-4 py-2.5 items-center border-b border-border/20 last:border-0 hover:bg-white/5 transition-colors"
+            className="grid grid-cols-[1.5rem_auto_1fr_auto] sm:grid-cols-[2rem_auto_1fr_auto_auto] gap-x-2 sm:gap-x-3 px-3 sm:px-4 py-2 sm:py-2.5 items-center border-b border-border/20 last:border-0 hover:bg-white/5 transition-colors"
           >
-            <span className="text-sm font-mono font-bold text-muted-foreground">{driver.position}</span>
+            <span className="text-xs sm:text-sm font-mono font-bold text-muted-foreground">{driver.position}</span>
             <div
-              className="w-1 h-6 rounded-full"
+              className="w-1 h-5 sm:h-6 rounded-full shrink-0"
               style={{ backgroundColor: getTeamColor(driver.teamId) }}
             />
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm font-bold uppercase tracking-wide truncate">{driver.familyName}</span>
-              <span className="text-xs font-mono text-muted-foreground hidden sm:inline bg-muted/30 px-1.5 py-0.5 rounded border border-border/30">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide truncate">{driver.familyName}</span>
+              <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1 sm:px-1.5 py-0.5 rounded border border-border/30 shrink-0">
                 {driver.code}
               </span>
               {driver.fastestLap && (
-                <span title="Fastest Lap">
+                <span title="Fastest Lap" className="shrink-0">
                   <Zap className="w-3 h-3 text-[hsl(45_90%_55%)]" />
                 </span>
               )}
             </div>
-            <span className="text-sm font-mono font-bold text-right">
+            <span className="text-xs sm:text-sm font-mono font-bold text-right">
               {driver.points !== "0" ? driver.points : <span className="text-muted-foreground">—</span>}
             </span>
-            <span className="text-xs font-mono text-muted-foreground text-right w-24 truncate">
+            <span className="text-xs font-mono text-muted-foreground text-right hidden sm:block w-24 truncate">
               {driver.time}
             </span>
           </motion.div>

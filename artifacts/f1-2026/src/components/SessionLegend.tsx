@@ -1,28 +1,50 @@
 import { Trophy, Zap } from "lucide-react";
 
+const ITEMS = [
+  {
+    badge: "P",
+    label: "Practice (1-3)",
+    badgeCls: "bg-muted/30 border-muted-foreground/20 text-muted-foreground",
+  },
+  {
+    badge: "Q",
+    label: "Qualifying",
+    badgeCls: "bg-secondary border-border text-foreground",
+  },
+  {
+    badge: "SQ",
+    label: "Sprint Quali",
+    badgeCls: "bg-sprint/10 border-sprint/20 text-sprint",
+  },
+  {
+    badge: "SP",
+    label: "Sprint",
+    badgeCls: "bg-sprint/10 border-sprint/20 text-sprint",
+    icon: <Zap className="w-3 h-3 text-sprint shrink-0" />,
+  },
+  {
+    badge: "R",
+    label: "Race",
+    badgeCls: "bg-primary/10 border-primary/20 text-primary",
+    icon: <Trophy className="w-3 h-3 text-primary shrink-0" />,
+    labelCls: "text-foreground font-medium",
+  },
+];
+
 export default function SessionLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-4 rounded-xl bg-card border border-border text-sm">
-      <div className="flex items-center gap-2">
-        <span className="w-8 text-center py-1 rounded bg-muted/30 border border-muted-foreground/20 text-muted-foreground font-mono font-bold text-xs">P</span>
-        <span className="text-muted-foreground">Practice (1-3)</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="w-8 text-center py-1 rounded bg-secondary border border-border text-foreground font-mono font-bold text-xs">Q</span>
-        <span className="text-muted-foreground">Qualifying</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="w-8 text-center py-1 rounded bg-sprint/10 border border-sprint/20 text-sprint font-mono font-bold text-xs">SQ</span>
-        <span className="text-muted-foreground">Sprint Quali</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="w-8 text-center py-1 rounded bg-sprint/10 border border-sprint/20 text-sprint font-mono font-bold text-xs">SP</span>
-        <span className="text-muted-foreground flex items-center gap-1">Sprint <Zap className="w-3 h-3 text-sprint" /></span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="w-8 text-center py-1 rounded bg-primary/10 border border-primary/20 text-primary font-mono font-bold text-xs">R</span>
-        <span className="text-foreground font-medium flex items-center gap-1">Race <Trophy className="w-3 h-3 text-primary" /></span>
-      </div>
+    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6 sm:gap-y-3 p-3 sm:p-4 rounded-xl bg-card border border-border text-sm">
+      {ITEMS.map((item) => (
+        <div key={item.badge} className="flex items-center gap-2 min-w-0">
+          <span className={`w-7 sm:w-8 text-center py-0.5 sm:py-1 rounded border font-mono font-bold text-xs shrink-0 ${item.badgeCls}`}>
+            {item.badge}
+          </span>
+          <span className={`text-muted-foreground flex items-center gap-1 text-xs sm:text-sm truncate ${item.labelCls ?? ""}`}>
+            {item.label}
+            {item.icon}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

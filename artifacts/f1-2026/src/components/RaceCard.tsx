@@ -66,7 +66,7 @@ export default function RaceCard({
       <button
         data-testid={`button-expand-${race.round}`}
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-5 flex items-center justify-between group focus:outline-none"
+        className="w-full text-left p-3 sm:p-5 flex items-center justify-between group focus:outline-none"
       >
         <div className="flex items-center gap-5">
           <div className="flex flex-col items-center justify-center w-12 h-12 rounded bg-muted/50 border border-border/50 shrink-0">
@@ -138,7 +138,7 @@ export default function RaceCard({
           >
             {/* Inner tabs for completed races */}
             {(hasResults || hasQualifying) && (
-              <div className="flex gap-0 border-b border-border/50">
+              <div className="flex gap-0 border-b border-border/50 overflow-x-auto scrollbar-none">
                 {([
                   { id: "sessions", label: "Sessions" },
                   ...(hasQualifying ? [{ id: "qualifying", label: "Qualifying" }] : []),
@@ -148,7 +148,7 @@ export default function RaceCard({
                     key={tab.id}
                     data-testid={`inner-tab-${race.round}-${tab.id}`}
                     onClick={() => setActiveInner(tab.id)}
-                    className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px
+                    className={`px-3 sm:px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0
                       ${activeInner === tab.id
                         ? "text-foreground border-primary"
                         : "text-muted-foreground border-transparent hover:text-foreground/70"
@@ -160,7 +160,7 @@ export default function RaceCard({
               </div>
             )}
 
-            <div className="p-5">
+            <div className="p-3 sm:p-5">
               {activeInner === "sessions" && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {race.sessions.map((session) => (

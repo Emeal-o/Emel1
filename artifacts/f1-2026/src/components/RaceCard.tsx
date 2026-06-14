@@ -1,11 +1,25 @@
 import { useState } from "react";
 import { RaceData } from "../data/calendar";
+import { RaceResultSet } from "../hooks/useF1Results";
 import { ChevronDown, ChevronUp, MapPin, Zap, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import RaceResults from "./RaceResults";
 
-export default function RaceCard({ race, isNext }: { race: RaceData; isNext?: boolean }) {
+export default function RaceCard({
+  race,
+  isNext,
+  results,
+}: {
+  race: RaceData;
+  isNext?: boolean;
+  results?: RaceResultSet;
+}) {
   const [expanded, setExpanded] = useState(isNext);
+  const [activeInner, setActiveInner] = useState<"sessions" | "results">("sessions");
   const isPast = race.status === "completed";
+  const hasResults = isPast && !!results;
+
+  const TZ = "Asia/Riyadh";
 
   const getSessionColor = (name: string) => {
     switch (name) {
@@ -14,15 +28,13 @@ export default function RaceCard({ race, isNext }: { race: RaceData; isNext?: bo
       case "Q": case "SQ":
         return "text-foreground bg-secondary border-border";
       case "SP":
-        return "text-[hsl(var(--sprint))] bg-[hsl(var(--sprint)/0.1)] border-[hsl(var(--sprint)/0.2)]";
+        return "text-[hsl(45_90%_55%)] bg-[hsl(45_90%_50%/0.1)] border-[hsl(45_90%_50%/0.2)]";
       case "R":
         return "text-primary bg-primary/10 border-primary/20";
       default:
         return "text-foreground bg-muted border-border";
     }
   };
-
-  const TZ = "Asia/Riyadh"; // UTC+3, no DST
 
   const formatDate = (dateStr: string) =>
     new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ }).format(new Date(dateStr));
@@ -45,6 +57,7 @@ export default function RaceCard({ race, isNext }: { race: RaceData; isNext?: bo
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-red-500 to-primary" />
       )}
 
+      {/* Card header row */}
       <button
         data-testid={`button-expand-${race.round}`}
         onClick={() => setExpanded(!expanded)}
@@ -75,7 +88,6 @@ export default function RaceCard({ race, isNext }: { race: RaceData; isNext?: bo
                 </span>
               )}
             </div>
-
             <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5" /> {race.weekend}
@@ -87,7 +99,12 @@ export default function RaceCard({ race, isNext }: { race: RaceData; isNext?: bo
           </div>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          {hasResults && !expanded && (
+            <span className="hidden md:inline text-xs font-mono text-muted-foreground">
+              P1 {results.results[0]?.code} · P2 {results.results[1]?.code} · P3 {results.results[2]?.code}
+            </span>
+          )}
           {isNext && (
             <span className="hidden md:inline-flex px-3 py-1 rounded bg-primary/10 text-primary font-bold text-xs uppercase tracking-widest border border-primary/20">
               Next Race
@@ -104,31 +121,58 @@ export default function RaceCard({ race, isNext }: { race: RaceData; isNext?: bo
         </div>
       </button>
 
+      {/* Expandable body */}
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden border-t border-border/50 bg-black/20"
           >
-            <div className="p-5">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {race.sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    data-testid={`session-${race.round}-${session.name}`}
-                    className={`flex flex-col p-3 rounded-lg border ${getSessionColor(session.name)}`}
+            {/* Inner tabs for completed races that have results */}
+            {hasResults && (
+              <div className="flex gap-0 border-b border-border/50">
+                {(["sessions", "results"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    data-testid={`inner-tab-${race.round}-${tab}`}
+                    onClick={() => setActiveInner(tab)}
+                    className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px
+                      ${activeInner === tab
+                        ? "text-foreground border-primary"
+                        : "text-muted-foreground border-transparent hover:text-foreground/70"
+                      }`}
                   >
-                    <span className="text-sm font-black tracking-widest">{session.name}</span>
-                    <div className="mt-2 flex flex-col gap-0.5">
-                      <span className="text-xs font-mono opacity-80">{formatDate(session.time)}</span>
-                      <span className="text-base font-mono font-bold">{formatTime(session.time)}</span>
-                    </div>
-                  </div>
+                    {tab === "sessions" ? "Sessions" : "Race Results"}
+                  </button>
                 ))}
               </div>
+            )}
+
+            <div className="p-5">
+              {(!hasResults || activeInner === "sessions") && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                  {race.sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      data-testid={`session-${race.round}-${session.name}`}
+                      className={`flex flex-col p-3 rounded-lg border ${getSessionColor(session.name)}`}
+                    >
+                      <span className="text-sm font-black tracking-widest">{session.name}</span>
+                      <div className="mt-2 flex flex-col gap-0.5">
+                        <span className="text-xs font-mono opacity-80">{formatDate(session.time)}</span>
+                        <span className="text-base font-mono font-bold">{formatTime(session.time)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {hasResults && activeInner === "results" && (
+                <RaceResults results={results.results} />
+              )}
             </div>
           </motion.div>
         )}

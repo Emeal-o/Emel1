@@ -12,3 +12,9 @@ id = "pe-UOyysBHEUcXm3KiGEF"
 uri = "file://qualifying-saturday-fix.zip"
 type = "unspecified"
 title = "Qualifying Saturday fix — 3 changed files"
+
+[[outputs]]
+id = "tLL6Aq3vXIs7iLIxKjRKT"
+uri = "file://f1-2026-full-source.zip"
+type = "unspecified"
+title = "F1 2026 — full source code"

@@ -14,6 +14,7 @@ export type RaceData = {
   weekend: string;
   isSprint: boolean;
   status: "completed" | "next" | "upcoming";
+  qualifyingDone: boolean;
   sessions: SessionInfo[];
 };
 
@@ -110,7 +111,11 @@ export function transformApiRaces(apiRaces: ApiRace[], now: Date): RaceData[] {
     sessions.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
     const raceTime = new Date(toIso(r.date, r.time));
-    const firstSession = new Date(sessions[0]?.time ?? r.date);
+
+    const qualifyingSession = sessions.find((s) => s.id.endsWith("-q"));
+    const qualifyingDone = qualifyingSession
+      ? new Date(qualifyingSession.time) < now
+      : raceTime < now;
 
     let status: RaceData["status"] = "upcoming";
     if (raceTime < now) {
@@ -127,6 +132,7 @@ export function transformApiRaces(apiRaces: ApiRace[], now: Date): RaceData[] {
       weekend: formatWeekend(sessions),
       isSprint,
       status,
+      qualifyingDone,
       sessions,
     };
   });

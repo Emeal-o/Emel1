@@ -6,3 +6,9 @@ id = "XT7B7S8_nkzkIeAfw9nM6"
 uri = "file://circuits.zip"
 type = "unspecified"
 title = "circuits.ts — fixed circuit data (zip)"
+
+[[outputs]]
+id = "pe-UOyysBHEUcXm3KiGEF"
+uri = "file://qualifying-saturday-fix.zip"
+type = "unspecified"
+title = "Qualifying Saturday fix — 3 changed files"

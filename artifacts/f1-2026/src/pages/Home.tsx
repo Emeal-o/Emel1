@@ -66,8 +66,16 @@ export default function Home() {
     [schedule]
   );
 
-  const resultsState   = useF1Results(completedRounds, refreshMs);
-  const qualifyingState = useF1Qualifying(completedRounds, refreshMs);
+  // Qualifying rounds: fetch as soon as Saturday quali is done, not just after Sunday race
+  const qualifyingRounds = useMemo(() =>
+    schedule.status === "success"
+      ? schedule.races.filter((r) => r.qualifyingDone || r.status === "completed").map((r) => r.round)
+      : [],
+    [schedule]
+  );
+
+  const resultsState    = useF1Results(completedRounds, refreshMs);
+  const qualifyingState = useF1Qualifying(qualifyingRounds, refreshMs);
 
   // Championship chart data (derived, no extra API)
   const byRound = resultsState.status === "success" ? resultsState.byRound : null;

@@ -43,10 +43,10 @@ function parseRound(race: any): QualifyingSet {
   return { round: parseInt(race.round, 10), raceName: race.raceName, results };
 }
 
-export function useF1Qualifying(completedRounds: number[], refreshInterval = 180_000): QualifyingState {
+export function useF1Qualifying(rounds: number[], refreshInterval = 180_000): QualifyingState {
   const [state, setState] = useState<QualifyingState>({ status: "idle" });
   const [tick, setTick] = useState(0);
-  const roundsKey = completedRounds.join(",");
+  const roundsKey = rounds.join(",");
 
   useEffect(() => {
     if (refreshInterval <= 0) return;
@@ -55,14 +55,14 @@ export function useF1Qualifying(completedRounds: number[], refreshInterval = 180
   }, [refreshInterval]);
 
   useEffect(() => {
-    if (completedRounds.length === 0) {
+    if (rounds.length === 0) {
       setState({ status: "idle" });
       return;
     }
     let cancelled = false;
     if (tick === 0) setState({ status: "loading" });
 
-    const fetches = completedRounds.map((round) =>
+    const fetches = rounds.map((round) =>
       fetch(`https://api.jolpi.ca/ergast/f1/2026/${round}/qualifying.json`)
         .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
         .then((data) => {

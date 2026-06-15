@@ -6,6 +6,9 @@ import { ChevronDown, ChevronUp, MapPin, Zap, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RaceResults from "./RaceResults";
 import QualifyingResults from "./QualifyingResults";
+import CircuitInfo from "./CircuitInfo";
+
+type InnerTab = "circuit" | "sessions" | "qualifying" | "results";
 
 export default function RaceCard({
   race,
@@ -19,7 +22,7 @@ export default function RaceCard({
   qualifying?: QualifyingSet;
 }) {
   const [expanded, setExpanded] = useState(isNext);
-  const [activeInner, setActiveInner] = useState<"sessions" | "qualifying" | "results">("sessions");
+  const [activeInner, setActiveInner] = useState<InnerTab>("circuit");
   const isPast = race.status === "completed";
   const hasResults = isPast && !!results;
   const hasQualifying = isPast && !!qualifying;
@@ -47,6 +50,13 @@ export default function RaceCard({
   const formatTime = (dateStr: string) =>
     new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: TZ }).format(new Date(dateStr)) + " UTC+3";
 
+  const innerTabs: { id: InnerTab; label: string }[] = [
+    { id: "circuit",   label: "Circuit"      },
+    { id: "sessions",  label: "Sessions"     },
+    ...(hasQualifying ? [{ id: "qualifying" as InnerTab, label: "Qualifying" }] : []),
+    ...(hasResults    ? [{ id: "results"    as InnerTab, label: "Race"       }] : []),
+  ];
+
   return (
     <motion.div
       initial={false}
@@ -62,67 +72,57 @@ export default function RaceCard({
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-red-500 to-primary" />
       )}
 
-      {/* Card header row */}
+      {/* Card header */}
       <button
         data-testid={`button-expand-${race.round}`}
         onClick={() => setExpanded(!expanded)}
         className="w-full text-left p-3 sm:p-5 flex items-center justify-between group focus:outline-none"
       >
-        <div className="flex items-center gap-5">
-          <div className="flex flex-col items-center justify-center w-12 h-12 rounded bg-muted/50 border border-border/50 shrink-0">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rnd</span>
-            <span className={`text-lg font-mono font-bold leading-none ${isNext ? "text-primary" : "text-foreground"}`}>
+        <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+          <div className="flex flex-col items-center justify-center w-10 sm:w-12 h-10 sm:h-12 rounded bg-muted/50 border border-border/50 shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rnd</span>
+            <span className={`text-base sm:text-lg font-mono font-bold leading-none ${isNext ? "text-primary" : "text-foreground"}`}>
               {race.round.toString().padStart(2, "0")}
             </span>
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xl">{race.flag}</span>
-              <h3 className="text-lg font-bold uppercase tracking-wide group-hover:text-primary transition-colors">
+              <span className="text-lg sm:text-xl">{race.flag}</span>
+              <h3 className="text-base sm:text-lg font-bold uppercase tracking-wide group-hover:text-primary transition-colors truncate">
                 {race.name}
               </h3>
               {race.isSprint && (
-                <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[hsl(45_90%_50%/0.1)] text-[hsl(45_90%_55%)] border border-[hsl(45_90%_50%/0.25)] ml-1">
+                <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[hsl(45_90%_50%/0.1)] text-[hsl(45_90%_55%)] border border-[hsl(45_90%_50%/0.25)] shrink-0">
                   <Zap className="w-3 h-3" /> Sprint
                 </span>
               )}
-              {isNext && (
-                <span className="flex sm:hidden items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
-                  Next
-                </span>
-              )}
             </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" /> {race.weekend}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
+              <span className="flex items-center gap-1 shrink-0">
+                <Calendar className="w-3 h-3 shrink-0" /> {race.weekend}
               </span>
-              <span className="hidden sm:flex items-center gap-1.5 truncate max-w-[220px]">
-                <MapPin className="w-3.5 h-3.5" /> {race.circuit}
+              <span className="hidden sm:flex items-center gap-1 truncate max-w-[200px]">
+                <MapPin className="w-3 h-3 shrink-0" /> {race.circuit}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {hasResults && !expanded && (
             <span className="hidden md:inline text-xs font-mono text-muted-foreground">
               P1 {results.results[0]?.code} · P2 {results.results[1]?.code} · P3 {results.results[2]?.code}
             </span>
           )}
-          {isNext && (
-            <span className="hidden md:inline-flex px-3 py-1 rounded bg-primary/10 text-primary font-bold text-xs uppercase tracking-widest border border-primary/20">
-              Next Race
-            </span>
-          )}
           {isPast && (
-            <span className="hidden md:inline-flex px-3 py-1 rounded bg-muted/50 text-muted-foreground font-bold text-xs uppercase tracking-widest border border-border/30">
+            <span className="hidden sm:inline-flex px-2 py-0.5 rounded bg-muted/50 text-muted-foreground font-bold text-[10px] uppercase tracking-widest border border-border/30">
               Completed
             </span>
           )}
           {expanded
-            ? <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+            ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+            : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />}
         </div>
       </button>
 
@@ -136,31 +136,29 @@ export default function RaceCard({
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden border-t border-border/50 bg-black/20"
           >
-            {/* Inner tabs for completed races */}
-            {(hasResults || hasQualifying) && (
-              <div className="flex gap-0 border-b border-border/50 overflow-x-auto scrollbar-none">
-                {([
-                  { id: "sessions", label: "Sessions" },
-                  ...(hasQualifying ? [{ id: "qualifying", label: "Qualifying" }] : []),
-                  ...(hasResults ? [{ id: "results", label: "Race Results" }] : []),
-                ] as { id: "sessions" | "qualifying" | "results"; label: string }[]).map((tab) => (
-                  <button
-                    key={tab.id}
-                    data-testid={`inner-tab-${race.round}-${tab.id}`}
-                    onClick={() => setActiveInner(tab.id)}
-                    className={`px-3 sm:px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0
-                      ${activeInner === tab.id
-                        ? "text-foreground border-primary"
-                        : "text-muted-foreground border-transparent hover:text-foreground/70"
-                      }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Inner tabs */}
+            <div className="flex gap-0 border-b border-border/50 overflow-x-auto scrollbar-none">
+              {innerTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  data-testid={`inner-tab-${race.round}-${tab.id}`}
+                  onClick={() => setActiveInner(tab.id)}
+                  className={`px-3 sm:px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0
+                    ${activeInner === tab.id
+                      ? "text-foreground border-primary"
+                      : "text-muted-foreground border-transparent hover:text-foreground/70"
+                    }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
             <div className="p-3 sm:p-5">
+              {activeInner === "circuit" && (
+                <CircuitInfo round={race.round} />
+              )}
+
               {activeInner === "sessions" && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {race.sessions.map((session) => (
@@ -172,7 +170,7 @@ export default function RaceCard({
                       <span className="text-sm font-black tracking-widest">{session.name}</span>
                       <div className="mt-2 flex flex-col gap-0.5">
                         <span className="text-xs font-mono opacity-80">{formatDate(session.time)}</span>
-                        <span className="text-base font-mono font-bold">{formatTime(session.time)}</span>
+                        <span className="text-sm sm:text-base font-mono font-bold">{formatTime(session.time)}</span>
                       </div>
                     </div>
                   ))}

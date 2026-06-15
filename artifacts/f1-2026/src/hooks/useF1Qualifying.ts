@@ -24,7 +24,7 @@ type QualifyingState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "success"; byRound: Map<number, QualifyingSet> };
+  | { status: "success"; byRound: Map<number, QualifyingSet>; lastUpdated: number };
 
 function parseRound(race: any): QualifyingSet {
   const results: QualifyingResult[] = (race.QualifyingResults ?? []).map((r: any) => ({
@@ -43,9 +43,16 @@ function parseRound(race: any): QualifyingSet {
   return { round: parseInt(race.round, 10), raceName: race.raceName, results };
 }
 
-export function useF1Qualifying(completedRounds: number[]): QualifyingState {
+export function useF1Qualifying(completedRounds: number[], refreshInterval = 180_000): QualifyingState {
   const [state, setState] = useState<QualifyingState>({ status: "idle" });
+  const [tick, setTick] = useState(0);
   const roundsKey = completedRounds.join(",");
+
+  useEffect(() => {
+    if (refreshInterval <= 0) return;
+    const id = setInterval(() => setTick((t) => t + 1), refreshInterval);
+    return () => clearInterval(id);
+  }, [refreshInterval]);
 
   useEffect(() => {
     if (completedRounds.length === 0) {
@@ -53,7 +60,7 @@ export function useF1Qualifying(completedRounds: number[]): QualifyingState {
       return;
     }
     let cancelled = false;
-    setState({ status: "loading" });
+    if (tick === 0) setState({ status: "loading" });
 
     const fetches = completedRounds.map((round) =>
       fetch(`https://api.jolpi.ca/ergast/f1/2026/${round}/qualifying.json`)
@@ -72,12 +79,12 @@ export function useF1Qualifying(completedRounds: number[]): QualifyingState {
       for (const s of sets) {
         if (s && s.results.length > 0) byRound.set(s.round, s);
       }
-      setState({ status: "success", byRound });
+      setState({ status: "success", byRound, lastUpdated: Date.now() });
     });
 
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundsKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundsKey, tick]);
 
   return state;
 }

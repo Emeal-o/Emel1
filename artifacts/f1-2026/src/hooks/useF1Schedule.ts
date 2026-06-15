@@ -6,10 +6,17 @@ const API_URL = "https://api.jolpi.ca/ergast/f1/2026.json?limit=30";
 type FetchState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "success"; races: RaceData[] };
+  | { status: "success"; races: RaceData[]; lastUpdated: number };
 
-export function useF1Schedule(): FetchState {
+export function useF1Schedule(refreshInterval = 300_000): FetchState {
   const [state, setState] = useState<FetchState>({ status: "loading" });
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (refreshInterval <= 0) return;
+    const id = setInterval(() => setTick((t) => t + 1), refreshInterval);
+    return () => clearInterval(id);
+  }, [refreshInterval]);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,19 +31,20 @@ export function useF1Schedule(): FetchState {
         if (!Array.isArray(apiRaces)) throw new Error("Unexpected API response shape");
         const now = new Date();
         const races = transformApiRaces(apiRaces, now);
-        // Mark the next upcoming race
         const nextIdx = races.findIndex((r) => r.status === "upcoming");
-        if (nextIdx !== -1) {
-          races[nextIdx] = { ...races[nextIdx], status: "next" };
-        }
-        setState({ status: "success", races });
+        if (nextIdx !== -1) races[nextIdx] = { ...races[nextIdx], status: "next" };
+        setState({ status: "success", races, lastUpdated: Date.now() });
       })
       .catch((err) => {
         if (cancelled) return;
-        setState({ status: "error", message: err.message ?? "Failed to load schedule" });
+        setState((prev) =>
+          prev.status === "success"
+            ? prev // keep stale data on refresh error
+            : { status: "error", message: err.message ?? "Failed to load schedule" }
+        );
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [tick]);
 
   return state;
 }

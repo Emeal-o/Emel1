@@ -28,7 +28,7 @@ type ResultsState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "success"; byRound: Map<number, RaceResultSet> };
+  | { status: "success"; byRound: Map<number, RaceResultSet>; lastUpdated: number };
 
 function parseRound(race: any): RaceResultSet {
   const results: RaceResult[] = (race.Results ?? []).map((r: any) => ({
@@ -51,11 +51,16 @@ function parseRound(race: any): RaceResultSet {
   return { round: parseInt(race.round, 10), raceName: race.raceName, results };
 }
 
-export function useF1Results(completedRounds: number[]): ResultsState {
+export function useF1Results(completedRounds: number[], refreshInterval = 180_000): ResultsState {
   const [state, setState] = useState<ResultsState>({ status: "idle" });
-
-  // Use a stable key to avoid unnecessary re-fetches
+  const [tick, setTick] = useState(0);
   const roundsKey = completedRounds.join(",");
+
+  useEffect(() => {
+    if (refreshInterval <= 0) return;
+    const id = setInterval(() => setTick((t) => t + 1), refreshInterval);
+    return () => clearInterval(id);
+  }, [refreshInterval]);
 
   useEffect(() => {
     if (completedRounds.length === 0) {
@@ -63,9 +68,8 @@ export function useF1Results(completedRounds: number[]): ResultsState {
       return;
     }
     let cancelled = false;
-    setState({ status: "loading" });
+    if (tick === 0) setState({ status: "loading" });
 
-    // Fetch every completed round individually in parallel
     const fetches = completedRounds.map((round) =>
       fetch(`https://api.jolpi.ca/ergast/f1/2026/${round}/results.json`)
         .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status} for round ${round}`); return r.json(); })
@@ -74,7 +78,7 @@ export function useF1Results(completedRounds: number[]): ResultsState {
           if (!race) return null;
           return parseRound(race);
         })
-        .catch(() => null) // Don't fail everything if one round is missing
+        .catch(() => null)
     );
 
     Promise.all(fetches).then((results) => {
@@ -83,12 +87,12 @@ export function useF1Results(completedRounds: number[]): ResultsState {
       for (const r of results) {
         if (r && r.results.length > 0) byRound.set(r.round, r);
       }
-      setState({ status: "success", byRound });
+      setState({ status: "success", byRound, lastUpdated: Date.now() });
     });
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundsKey]);
+  }, [roundsKey, tick]);
 
   return state;
 }

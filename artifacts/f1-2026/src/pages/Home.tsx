@@ -1,19 +1,22 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useF1Schedule } from "../hooks/useF1Schedule";
 import { useF1Standings } from "../hooks/useF1Standings";
 import { useF1Results } from "../hooks/useF1Results";
 import { useF1Qualifying } from "../hooks/useF1Qualifying";
 import { useTheme } from "../hooks/useTheme";
+import { useLiveSession } from "../hooks/useLiveSession";
+import { useF1PointsHistory } from "../hooks/useF1PointsHistory";
 import Countdown from "../components/Countdown";
 import RaceCard from "../components/RaceCard";
 import SessionLegend from "../components/SessionLegend";
 import DriversStandings from "../components/DriversStandings";
 import ConstructorsStandings from "../components/ConstructorsStandings";
+import ChampionshipChart from "../components/ChampionshipChart";
 import TabBar, { TabId } from "../components/TabBar";
 import ThemeSwitcher from "../components/ThemeSwitcher";
 import CalendarFilter, { FilterState, filterRaces } from "../components/CalendarFilter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, RefreshCw, Radio } from "lucide-react";
 
 function LoadingSkeleton({ rows = 5 }: { rows?: number }) {
   return (
@@ -23,6 +26,13 @@ function LoadingSkeleton({ rows = 5 }: { rows?: number }) {
       ))}
     </div>
   );
+}
+
+function timeAgo(ts: number): string {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 10) return "just now";
+  if (s < 60) return `${s}s ago`;
+  return `${Math.floor(s / 60)}m ago`;
 }
 
 const tabVariants = {
@@ -35,24 +45,55 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("calendar");
   const [prevTab, setPrevTab] = useState<TabId>("calendar");
   const [calFilter, setCalFilter] = useState<FilterState>({ query: "", sprintOnly: false });
+  const [tick, setTick] = useState(0); // for "updated X ago" re-render
 
   const { theme, setTheme } = useTheme();
-  const schedule = useF1Schedule();
-  const standings = useF1Standings();
 
-  const completedRounds =
+  // Detect live session to drive fast refresh
+  const scheduleForLive = useF1Schedule(300_000);
+  const liveRaces = scheduleForLive.status === "success" ? scheduleForLive.races : [];
+  const liveSession = useLiveSession(liveRaces);
+  const refreshMs = liveSession ? 30_000 : 180_000;
+
+  // All data hooks with coordinated refresh interval
+  const schedule   = useF1Schedule(refreshMs);
+  const standings  = useF1Standings(refreshMs);
+
+  const completedRounds = useMemo(() =>
     schedule.status === "success"
       ? schedule.races.filter((r) => r.status === "completed").map((r) => r.round)
-      : [];
+      : [],
+    [schedule]
+  );
 
-  const resultsState = useF1Results(completedRounds);
-  const qualifyingState = useF1Qualifying(completedRounds);
+  const resultsState   = useF1Results(completedRounds, refreshMs);
+  const qualifyingState = useF1Qualifying(completedRounds, refreshMs);
 
-  const allRaces = schedule.status === "success" ? schedule.races : [];
+  // Championship chart data (derived, no extra API)
+  const byRound = resultsState.status === "success" ? resultsState.byRound : null;
+  const pointsHistory = useF1PointsHistory(byRound);
+
+  const allRaces     = schedule.status === "success" ? schedule.races : [];
   const visibleRaces = filterRaces(allRaces, calFilter);
 
-  const isLive = schedule.status === "success" || standings.status === "success";
+  const isLive      = schedule.status === "success" || standings.status === "success";
   const hasAnyError = schedule.status === "error" && standings.status === "error";
+
+  // Last updated timestamp (most recent of all data sources)
+  const lastUpdated = useMemo(() => {
+    const ts = [
+      schedule.status   === "success" ? schedule.lastUpdated   : 0,
+      standings.status  === "success" ? standings.lastUpdated  : 0,
+      resultsState.status === "success" ? resultsState.lastUpdated : 0,
+    ];
+    return Math.max(...ts);
+  }, [schedule, standings, resultsState]);
+
+  // Re-render "X ago" every 15s
+  useState(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 15_000);
+    return () => clearInterval(id);
+  });
 
   const direction = activeTab === "standings" && prevTab === "calendar" ? 1 : -1;
 
@@ -65,31 +106,39 @@ export default function Home() {
     <div className="min-h-[100dvh] w-full pb-24">
       {/* Sticky navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center transform -skew-x-12">
-              <span className="text-primary-foreground font-black italic text-lg tracking-tighter">F1</span>
+        <div className="max-w-5xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary rounded flex items-center justify-center transform -skew-x-12 shrink-0">
+              <span className="text-primary-foreground font-black italic text-sm sm:text-lg tracking-tighter">F1</span>
             </div>
-            <h1 className="font-bold tracking-widest uppercase text-sm md:text-base hidden sm:block">
+            <h1 className="font-bold tracking-widest uppercase text-xs sm:text-sm md:text-base hidden sm:block">
               2026 World Championship
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <ThemeSwitcher theme={theme} setTheme={setTheme} />
 
-            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-              {!isLive && !hasAnyError && <Loader2 className="w-3 h-3 animate-spin" />}
-              {isLive && (
-                <span className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+              {liveSession && (
+                <span className="flex items-center gap-1 text-primary font-bold">
+                  <Radio className="w-3 h-3 animate-pulse" />
+                  <span className="hidden sm:inline">LIVE</span>
+                </span>
+              )}
+              {!liveSession && !isLive && !hasAnyError && (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              )}
+              {!liveSession && isLive && (
+                <span className="flex items-center gap-1 text-green-500">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <span className="hidden sm:inline">LIVE DATA</span>
+                  <span className="hidden sm:inline text-muted-foreground">
+                    {lastUpdated > 0 ? timeAgo(lastUpdated) : "live"}
+                  </span>
                 </span>
               )}
               {hasAnyError && (
-                <span className="text-destructive flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                </span>
+                <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
               )}
             </div>
           </div>
@@ -98,7 +147,7 @@ export default function Home() {
 
       <main className="max-w-5xl mx-auto px-4 pt-8 md:pt-12 flex flex-col gap-10">
 
-        {/* Hero + Countdown */}
+        {/* Hero */}
         <section className="flex flex-col gap-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
             <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter">
@@ -109,7 +158,12 @@ export default function Home() {
             </h2>
             <p className="text-muted-foreground font-mono text-sm max-w-2xl">
               Live schedule and standings for the 2026 FIA Formula One World Championship.
-              All times UTC+3.
+              All times UTC+3.{" "}
+              {liveSession && (
+                <span className="text-primary font-bold animate-pulse">
+                  {liveSession.session.name} IS LIVE — {liveSession.race.name}
+                </span>
+              )}
             </p>
           </motion.div>
 
@@ -126,7 +180,9 @@ export default function Home() {
                 <span className="font-mono text-sm">{schedule.message}</span>
               </div>
             )}
-            {schedule.status === "success" && <Countdown races={schedule.races} />}
+            {schedule.status === "success" && (
+              <Countdown races={schedule.races} liveSession={liveSession} />
+            )}
           </motion.div>
         </section>
 
@@ -138,14 +194,21 @@ export default function Home() {
           className="flex items-center justify-between gap-4 flex-wrap"
         >
           <TabBar active={activeTab} onChange={handleTabChange} />
-          <p className="text-xs font-mono text-muted-foreground hidden sm:block">
+          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
             {activeTab === "calendar" ? "All times UTC+3" : "Updated after each completed race"}
-          </p>
+            {lastUpdated > 0 && (
+              <span className="flex items-center gap-1 text-muted-foreground/60">
+                <RefreshCw className="w-3 h-3" />
+                {timeAgo(lastUpdated)}
+              </span>
+            )}
+          </div>
         </motion.div>
 
         {/* Tab panels */}
         <div className="relative overflow-hidden min-h-[400px]">
           <AnimatePresence mode="wait" custom={direction}>
+
             {activeTab === "calendar" && (
               <motion.div
                 key="calendar"
@@ -157,10 +220,8 @@ export default function Home() {
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 className="flex flex-col gap-6"
               >
-                {/* Session legend */}
                 <SessionLegend />
 
-                {/* Filter bar */}
                 {schedule.status === "success" && (
                   <CalendarFilter
                     filter={calFilter}
@@ -170,7 +231,6 @@ export default function Home() {
                   />
                 )}
 
-                {/* Race cards */}
                 {schedule.status === "loading" && <LoadingSkeleton rows={8} />}
 
                 {schedule.status === "success" && visibleRaces.length === 0 && (
@@ -224,7 +284,7 @@ export default function Home() {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                className="flex flex-col gap-8"
+                className="flex flex-col gap-10"
               >
                 {standings.status === "loading" && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -244,8 +304,21 @@ export default function Home() {
                     <ConstructorsStandings constructors={standings.constructors} />
                   </div>
                 )}
+
+                {/* Championship points chart */}
+                {pointsHistory.rows.length > 0 && (
+                  <div className="border border-border rounded-xl bg-card/40 p-4 sm:p-6">
+                    <ChampionshipChart history={pointsHistory} />
+                  </div>
+                )}
+                {pointsHistory.rows.length === 0 && resultsState.status === "success" && (
+                  <div className="border border-dashed border-border/50 rounded-xl p-8 flex items-center justify-center text-muted-foreground font-mono text-sm">
+                    Championship chart available after Round 1
+                  </div>
+                )}
               </motion.div>
             )}
+
           </AnimatePresence>
         </div>
       </main>

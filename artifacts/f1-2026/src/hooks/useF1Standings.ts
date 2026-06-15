@@ -25,13 +25,20 @@ export type ConstructorStanding = {
 type StandingsState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "success"; drivers: DriverStanding[]; constructors: ConstructorStanding[]; round: number; season: string };
+  | { status: "success"; drivers: DriverStanding[]; constructors: ConstructorStanding[]; round: number; season: string; lastUpdated: number };
 
 const DRIVERS_URL = "https://api.jolpi.ca/ergast/f1/2026/driverStandings.json";
 const CONSTRUCTORS_URL = "https://api.jolpi.ca/ergast/f1/2026/constructorStandings.json";
 
-export function useF1Standings(): StandingsState {
+export function useF1Standings(refreshInterval = 180_000): StandingsState {
   const [state, setState] = useState<StandingsState>({ status: "loading" });
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (refreshInterval <= 0) return;
+    const id = setInterval(() => setTick((t) => t + 1), refreshInterval);
+    return () => clearInterval(id);
+  }, [refreshInterval]);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,10 +49,8 @@ export function useF1Standings(): StandingsState {
     ])
       .then(([dData, cData]) => {
         if (cancelled) return;
-
         const dList = dData?.MRData?.StandingsTable?.StandingsLists?.[0];
         const cList = cData?.MRData?.StandingsTable?.StandingsLists?.[0];
-
         if (!dList || !cList) throw new Error("No standings data available yet");
 
         const drivers: DriverStanding[] = (dList.DriverStandings ?? []).map((s: any) => ({
@@ -70,21 +75,19 @@ export function useF1Standings(): StandingsState {
           nationality: s.Constructor.nationality,
         }));
 
-        setState({
-          status: "success",
-          drivers,
-          constructors,
-          round: parseInt(dList.round, 10),
-          season: dList.season,
-        });
+        setState({ status: "success", drivers, constructors, round: parseInt(dList.round, 10), season: dList.season, lastUpdated: Date.now() });
       })
       .catch((err) => {
         if (cancelled) return;
-        setState({ status: "error", message: err.message ?? "Failed to load standings" });
+        setState((prev) =>
+          prev.status === "success"
+            ? prev
+            : { status: "error", message: err.message ?? "Failed to load standings" }
+        );
       });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [tick]);
 
   return state;
 }

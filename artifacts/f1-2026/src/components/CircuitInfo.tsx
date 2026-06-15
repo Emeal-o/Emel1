@@ -1,9 +1,13 @@
 import { CIRCUIT_STATS } from "../data/circuits";
 import { Timer, Gauge, Map, Zap } from "lucide-react";
 
-export default function CircuitInfo({ round }: { round: number }) {
-  const stats = CIRCUIT_STATS[round];
-  if (!stats) return null;
+export default function CircuitInfo({ circuitName }: { circuitName: string }) {
+  const stats = CIRCUIT_STATS[circuitName];
+  if (!stats) return (
+    <div className="flex items-center justify-center h-24 text-muted-foreground font-mono text-sm border border-dashed border-border/50 rounded-xl">
+      Circuit data not available
+    </div>
+  );
 
   const totalDistance = ((stats.length * stats.laps) / 1).toFixed(1);
 

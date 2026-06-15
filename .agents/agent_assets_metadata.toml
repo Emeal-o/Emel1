@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "XT7B7S8_nkzkIeAfw9nM6"
+uri = "file://circuits.zip"
+type = "unspecified"
+title = "circuits.ts — fixed circuit data (zip)"

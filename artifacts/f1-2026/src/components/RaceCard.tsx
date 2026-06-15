@@ -156,7 +156,7 @@ export default function RaceCard({
 
             <div className="p-3 sm:p-5">
               {activeInner === "circuit" && (
-                <CircuitInfo round={race.round} />
+                <CircuitInfo circuitName={race.circuit} />
               )}
 
               {activeInner === "sessions" && (

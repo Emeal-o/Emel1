@@ -11,17 +11,17 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
   // ── Australia ──────────────────────────────────────────────────
   "Albert Park Grand Prix Circuit": {
     length: 5.278, laps: 58, drsZones: 4, firstGP: 1996,
-    lapRecord: { time: "1:19.908", driver: "G. Russell", year: 2023 },
+    lapRecord: { time: "1:19.813", driver: "C. Leclerc", year: 2024 },
   },
   // ── China ──────────────────────────────────────────────────────
   "Shanghai International Circuit": {
     length: 5.451, laps: 56, drsZones: 2, firstGP: 2004,
-    lapRecord: { time: "1:31.361", driver: "M. Verstappen", year: 2024 },
+    lapRecord: { time: "1:32.238", driver: "M. Schumacher", year: 2004 },
   },
   // ── Japan ──────────────────────────────────────────────────────
   "Suzuka Circuit": {
     length: 5.807, laps: 53, drsZones: 1, firstGP: 1987,
-    lapRecord: { time: "1:30.983", driver: "C. Leclerc", year: 2024 },
+    lapRecord: { time: "1:30.965", driver: "K. Antonelli", year: 2025 },
   },
   // ── Bahrain ────────────────────────────────────────────────────
   "Bahrain International Circuit": {
@@ -31,7 +31,7 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
   // ── Saudi Arabia ───────────────────────────────────────────────
   "Jeddah Corniche Circuit": {
     length: 6.174, laps: 50, drsZones: 3, firstGP: 2021,
-    lapRecord: { time: "1:27.653", driver: "C. Leclerc", year: 2022 },
+    lapRecord: { time: "1:30.734", driver: "L. Hamilton", year: 2021 },
   },
   // ── Miami ──────────────────────────────────────────────────────
   "Miami International Autodrome": {
@@ -41,17 +41,17 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
   // ── Emilia Romagna / Imola ─────────────────────────────────────
   "Autodromo Enzo e Dino Ferrari": {
     length: 4.909, laps: 63, drsZones: 2, firstGP: 1980,
-    lapRecord: { time: "1:15.484", driver: "M. Verstappen", year: 2022 },
+    lapRecord: { time: "1:15.484", driver: "L. Hamilton", year: 2020 },
   },
   // ── Monaco ─────────────────────────────────────────────────────
   "Circuit de Monaco": {
     length: 3.337, laps: 78, drsZones: 1, firstGP: 1950,
-    lapRecord: { time: "1:12.909", driver: "C. Leclerc", year: 2021 },
+    lapRecord: { time: "1:12.909", driver: "L. Hamilton", year: 2021 },
   },
   // ── Spain ──────────────────────────────────────────────────────
   "Circuit de Barcelona-Catalunya": {
     length: 4.657, laps: 66, drsZones: 2, firstGP: 1991,
-    lapRecord: { time: "1:16.330", driver: "M. Verstappen", year: 2023 },
+    lapRecord: { time: "1:16.330", driver: "O. Piastri", year: 2025 },
   },
   // ── Canada ─────────────────────────────────────────────────────
   "Circuit Gilles Villeneuve": {
@@ -76,17 +76,17 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
   // ── Belgium / Spa ──────────────────────────────────────────────
   "Circuit de Spa-Francorchamps": {
     length: 7.004, laps: 44, drsZones: 2, firstGP: 1950,
-    lapRecord: { time: "1:41.252", driver: "M. Verstappen", year: 2023 },
+    lapRecord: { time: "1:44.701", driver: "S. Perez", year: 2024 },
   },
   // ── Netherlands / Zandvoort ────────────────────────────────────
   "Circuit Zandvoort": {
     length: 4.259, laps: 72, drsZones: 2, firstGP: 1952,
-    lapRecord: { time: "1:11.097", driver: "M. Verstappen", year: 2021 },
+    lapRecord: { time: "1:11.097", driver: "L. Hamilton", year: 2021 },
   },
   // ── Italy / Monza ──────────────────────────────────────────────
   "Autodromo Nazionale di Monza": {
     length: 5.793, laps: 53, drsZones: 2, firstGP: 1950,
-    lapRecord: { time: "1:21.046", driver: "R. Barrichello", year: 2004 },
+    lapRecord: { time: "1:20.901", driver: "L. Norris", year: 2025 },
   },
   // ── Azerbaijan / Baku ─────────────────────────────────────────
   "Baku City Circuit": {
@@ -96,12 +96,12 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
   // ── Singapore ─────────────────────────────────────────────────
   "Marina Bay Street Circuit": {
     length: 4.940, laps: 62, drsZones: 3, firstGP: 2008,
-    lapRecord: { time: "1:30.984", driver: "C. Sainz", year: 2023 },
+    lapRecord: { time: "1:33.808", driver: "L. Hamilton", year: 2025 },
   },
   // ── USA / COTA ────────────────────────────────────────────────
   "Circuit of the Americas": {
     length: 5.513, laps: 56, drsZones: 2, firstGP: 2012,
-    lapRecord: { time: "1:36.169", driver: "C. Sainz", year: 2023 },
+    lapRecord: { time: "1:36.169", driver: "C. Leclerc", year: 2019 },
   },
   // ── Mexico ────────────────────────────────────────────────────
   "Autodromo Hermanos Rodriguez": {
@@ -121,11 +121,11 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
   // ── Qatar / Lusail ────────────────────────────────────────────
   "Losail International Circuit": {
     length: 5.419, laps: 57, drsZones: 2, firstGP: 2021,
-    lapRecord: { time: "1:24.319", driver: "M. Verstappen", year: 2023 },
+    lapRecord: { time: "1:22.384", driver: "L. Norris", year: 2024 },
   },
   // ── Abu Dhabi / Yas Marina ────────────────────────────────────
   "Yas Marina Circuit": {
     length: 5.281, laps: 58, drsZones: 2, firstGP: 2009,
-    lapRecord: { time: "1:26.103", driver: "M. Verstappen", year: 2021 },
+    lapRecord: { time: "1:25.637", driver: "K. Magnussen", year: 2024 },
   },
 };

@@ -46,12 +46,12 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
   // ── Monaco ─────────────────────────────────────────────────────
   "Circuit de Monaco": {
     length: 3.337, laps: 78, drsZones: 1, firstGP: 1950,
-    lapRecord: { time: "1:12.909", driver: "L. Hamilton", year: 2025 },
+    lapRecord: { time: "1:12.909", driver: "C. Leclerc", year: 2021 },
   },
   // ── Spain ──────────────────────────────────────────────────────
   "Circuit de Barcelona-Catalunya": {
     length: 4.657, laps: 66, drsZones: 2, firstGP: 1991,
-    lapRecord: { time: "1:16.330", driver: "O. Piastri", year: 2025 },
+    lapRecord: { time: "1:16.330", driver: "M. Verstappen", year: 2023 },
   },
   // ── Canada ─────────────────────────────────────────────────────
   "Circuit Gilles Villeneuve": {

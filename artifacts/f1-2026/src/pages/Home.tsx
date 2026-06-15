@@ -194,11 +194,11 @@ export default function Home() {
           className="flex items-center justify-between gap-4 flex-wrap"
         >
           <TabBar active={activeTab} onChange={handleTabChange} />
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/60">
             {activeTab === "calendar" ? "All times UTC+3" : "Updated after each completed race"}
             {lastUpdated > 0 && (
-              <span className="flex items-center gap-1 text-muted-foreground/60">
-                <RefreshCw className="w-3 h-3" />
+              <span className="flex items-center gap-1">
+                <RefreshCw className="w-2.5 h-2.5" />
                 {timeAgo(lastUpdated)}
               </span>
             )}

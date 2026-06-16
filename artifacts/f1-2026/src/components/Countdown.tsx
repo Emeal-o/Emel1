@@ -121,7 +121,7 @@ function CountdownBanner({ races }: { races: RaceData[] }) {
   const isRaceDay = days === 0;
 
   return (
-    <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between border border-border bg-card rounded-xl shadow-md relative overflow-hidden gap-3 sm:gap-6 p-4 sm:p-5">
+    <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between border border-border bg-card rounded-xl shadow-md relative gap-3 sm:gap-6 p-4 sm:p-5">
       <div className="absolute top-0 right-0 w-72 h-72 bg-primary/4 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
       <div className="flex items-center gap-3 sm:gap-4 z-10 min-w-0">

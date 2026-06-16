@@ -3,7 +3,7 @@ export type CircuitStats = {
   laps: number;
   drsZones: number;
   firstGP: number;
-  lapRecord: { time: string; driver: string; year: number };
+  lapRecord: { time: string; driver: string; year: number } | null;
 };
 
 // Keyed by the circuitName string returned by the Jolpica/Ergast API
@@ -83,10 +83,19 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
     length: 4.259, laps: 72, drsZones: 2, firstGP: 1952,
     lapRecord: { time: "1:11.097", driver: "L. Hamilton", year: 2021 },
   },
+  "Circuit Park Zandvoort": {
+    length: 4.259, laps: 72, drsZones: 2, firstGP: 1952,
+    lapRecord: { time: "1:11.097", driver: "L. Hamilton", year: 2021 },
+  },
   // ── Italy / Monza ──────────────────────────────────────────────
   "Autodromo Nazionale di Monza": {
     length: 5.793, laps: 53, drsZones: 2, firstGP: 1950,
     lapRecord: { time: "1:20.901", driver: "L. Norris", year: 2025 },
+  },
+  // ── Spain / Madrid (2026 new street circuit) ──────────────────
+  "Madring": {
+    length: 5.47, laps: 55, drsZones: 3, firstGP: 2026,
+    lapRecord: null,
   },
   // ── Azerbaijan / Baku ─────────────────────────────────────────
   "Baku City Circuit": {
@@ -108,8 +117,16 @@ export const CIRCUIT_STATS: Record<string, CircuitStats> = {
     length: 4.304, laps: 71, drsZones: 2, firstGP: 1963,
     lapRecord: { time: "1:17.774", driver: "V. Bottas", year: 2021 },
   },
+  "Autódromo Hermanos Rodríguez": {
+    length: 4.304, laps: 71, drsZones: 2, firstGP: 1963,
+    lapRecord: { time: "1:17.774", driver: "V. Bottas", year: 2021 },
+  },
   // ── Brazil / Interlagos ───────────────────────────────────────
   "Autodromo Jose Carlos Pace": {
+    length: 4.309, laps: 71, drsZones: 2, firstGP: 1973,
+    lapRecord: { time: "1:10.540", driver: "V. Bottas", year: 2018 },
+  },
+  "Autódromo José Carlos Pace": {
     length: 4.309, laps: 71, drsZones: 2, firstGP: 1973,
     lapRecord: { time: "1:10.540", driver: "V. Bottas", year: 2018 },
   },

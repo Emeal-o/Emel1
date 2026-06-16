@@ -40,20 +40,37 @@ export default function CircuitInfo({ circuitName }: { circuitName: string }) {
       </div>
 
       {/* Lap record */}
-      <div className="flex items-center justify-between p-4 rounded-xl border border-[hsl(45_90%_50%/0.25)] bg-[hsl(45_90%_50%/0.05)]">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[hsl(45_90%_55%)]">
-            Official Lap Record
-          </span>
-          <span className="text-base font-mono font-bold text-foreground">
-            {stats.lapRecord.time}
-          </span>
-          <span className="text-xs font-mono text-muted-foreground">
-            {stats.lapRecord.driver} · {stats.lapRecord.year}
-          </span>
+      {stats.lapRecord ? (
+        <div className="flex items-center justify-between p-4 rounded-xl border border-[hsl(45_90%_50%/0.25)] bg-[hsl(45_90%_50%/0.05)]">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[hsl(45_90%_55%)]">
+              Official Lap Record
+            </span>
+            <span className="text-base font-mono font-bold text-foreground">
+              {stats.lapRecord.time}
+            </span>
+            <span className="text-xs font-mono text-muted-foreground">
+              {stats.lapRecord.driver} · {stats.lapRecord.year}
+            </span>
+          </div>
+          <span className="text-3xl">⏱</span>
         </div>
-        <span className="text-3xl">⏱</span>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border/40 bg-muted/20">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Official Lap Record
+            </span>
+            <span className="text-base font-mono font-bold text-muted-foreground">
+              – –:–– –––
+            </span>
+            <span className="text-xs font-mono text-muted-foreground/60">
+              No record set · debut race
+            </span>
+          </div>
+          <span className="text-3xl opacity-30">⏱</span>
+        </div>
+      )}
     </div>
   );
 }

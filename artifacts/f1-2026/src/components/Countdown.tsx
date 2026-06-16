@@ -3,7 +3,7 @@ import { RaceData, findNextSession } from "../data/calendar";
 import { Clock, Radio } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveSessionInfo } from "../hooks/useLiveSession";
-import ReminderButton from "./ReminderButton";
+
 
 function pad(n: number) { return n.toString().padStart(2, "0"); }
 
@@ -149,15 +149,6 @@ function CountdownBanner({ races }: { races: RaceData[] }) {
             <span>{SESSION_LABEL[nextSession.name] ?? nextSession.name}</span>
             <span className="text-border/70">·</span>
             <span className="text-muted-foreground/70 truncate">{nextRace.city}</span>
-          </div>
-          <div className="mt-2">
-            <ReminderButton
-              sessionId={nextSession.id}
-              raceName={nextRace.name}
-              sessionName={SESSION_LABEL[nextSession.name] ?? nextSession.name}
-              sessionCode={nextSession.name}
-              sessionTimeIso={nextSession.time}
-            />
           </div>
         </div>
       </div>

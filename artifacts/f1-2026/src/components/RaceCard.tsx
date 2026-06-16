@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import RaceResults from "./RaceResults";
 import QualifyingResults from "./QualifyingResults";
 import CircuitInfo from "./CircuitInfo";
-import ReminderButton from "./ReminderButton";
+
 
 type InnerTab = "circuit" | "sessions" | "qualifying" | "results";
 
@@ -192,17 +192,7 @@ export default function RaceCard({
                       data-testid={`session-${race.round}-${session.name}`}
                       className={`flex flex-col p-3 rounded-lg border ${getSessionColor(session.name)}`}
                     >
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-sm font-black tracking-widest">{session.name}</span>
-                        <ReminderButton
-                          sessionId={session.id}
-                          raceName={race.name}
-                          sessionName={session.name}
-                          sessionCode={session.name}
-                          sessionTimeIso={session.time}
-                          className="shrink-0"
-                        />
-                      </div>
+                      <span className="text-sm font-black tracking-widest">{session.name}</span>
                       <div className="mt-2 flex flex-col gap-0.5">
                         <span className="text-xs font-mono opacity-80">{formatDate(session.time)}</span>
                         <span className="text-sm sm:text-base font-mono font-bold">{formatTime(session.time)}</span>

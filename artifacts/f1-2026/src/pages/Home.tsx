@@ -12,6 +12,7 @@ import SessionLegend from "../components/SessionLegend";
 import DriversStandings from "../components/DriversStandings";
 import ConstructorsStandings from "../components/ConstructorsStandings";
 import ChampionshipChart from "../components/ChampionshipChart";
+import DriverComparison from "../components/DriverComparison";
 import ThemeSwitcher from "../components/ThemeSwitcher";
 import CalendarFilter, { FilterState, filterRaces } from "../components/CalendarFilter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -412,10 +413,16 @@ export default function Home() {
                   </div>
                 )}
                 {standings.status === "success" && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <DriversStandings drivers={standings.drivers} round={standings.round} />
-                    <ConstructorsStandings constructors={standings.constructors} />
-                  </div>
+                  <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <DriversStandings drivers={standings.drivers} round={standings.round} />
+                      <ConstructorsStandings constructors={standings.constructors} />
+                    </div>
+                    <DriverComparison
+                      drivers={standings.drivers}
+                      byRound={resultsState.status === "success" ? resultsState.byRound : null}
+                    />
+                  </>
                 )}
 
                 {pointsHistory.rows.length > 0 && (

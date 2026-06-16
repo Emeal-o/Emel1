@@ -1,5 +1,5 @@
 import { CIRCUIT_STATS } from "../data/circuits";
-import { Timer, Gauge, Map, Zap } from "lucide-react";
+import { Timer, Gauge, Map, Zap, CornerDownRight } from "lucide-react";
 
 export default function CircuitInfo({ circuitName }: { circuitName: string }) {
   const stats = CIRCUIT_STATS[circuitName];
@@ -9,15 +9,15 @@ export default function CircuitInfo({ circuitName }: { circuitName: string }) {
     </div>
   );
 
-  const totalDistance = ((stats.length * stats.laps) / 1).toFixed(1);
+  const totalDistance = (stats.length * stats.laps).toFixed(1);
 
   return (
     <div className="flex flex-col gap-4">
       {/* Main stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <StatCard
           icon={<Map className="w-4 h-4" />}
-          label="Circuit Length"
+          label="Track Length"
           value={`${stats.length} km`}
         />
         <StatCard
@@ -25,6 +25,12 @@ export default function CircuitInfo({ circuitName }: { circuitName: string }) {
           label="Race Distance"
           value={`${stats.laps} laps`}
           sub={`${totalDistance} km total`}
+        />
+        <StatCard
+          icon={<CornerDownRight className="w-4 h-4" />}
+          label="Turns"
+          value={stats.turns.toString()}
+          sub="corners"
         />
         <StatCard
           icon={<Zap className="w-4 h-4" />}
@@ -36,6 +42,7 @@ export default function CircuitInfo({ circuitName }: { circuitName: string }) {
           icon={<Timer className="w-4 h-4" />}
           label="First GP"
           value={stats.firstGP.toString()}
+          highlight={stats.firstGP === 2026}
         />
       </div>
 
@@ -80,19 +87,21 @@ function StatCard({
   label,
   value,
   sub,
+  highlight,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
+  highlight?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl border border-border bg-card/60">
+    <div className={`flex flex-col gap-2 p-3 sm:p-4 rounded-xl border bg-card/60 ${highlight ? "border-primary/30 bg-primary/5" : "border-border"}`}>
       <div className="flex items-center gap-1.5 text-muted-foreground">
         {icon}
         <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
       </div>
-      <span className="text-xl sm:text-2xl font-mono font-bold text-foreground">{value}</span>
+      <span className={`text-xl sm:text-2xl font-mono font-bold ${highlight ? "text-primary" : "text-foreground"}`}>{value}</span>
       {sub && <span className="text-xs font-mono text-muted-foreground">{sub}</span>}
     </div>
   );

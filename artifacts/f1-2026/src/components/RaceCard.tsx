@@ -186,19 +186,23 @@ export default function RaceCard({
 
               {activeInner === "sessions" && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                  {race.sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      data-testid={`session-${race.round}-${session.name}`}
-                      className={`flex flex-col p-3 rounded-lg border ${getSessionColor(session.name)}`}
-                    >
-                      <span className="text-sm font-black tracking-widest">{session.name}</span>
-                      <div className="mt-2 flex flex-col gap-0.5">
-                        <span className="text-xs font-mono opacity-80">{formatDate(session.time)}</span>
-                        <span className="text-sm sm:text-base font-mono font-bold">{formatTime(session.time)}</span>
+                  {race.sessions.map((session, idx) => {
+                    const isLastOdd =
+                      idx === race.sessions.length - 1 && race.sessions.length % 2 === 1;
+                    return (
+                      <div
+                        key={session.id}
+                        data-testid={`session-${race.round}-${session.name}`}
+                        className={`flex flex-col p-3 rounded-lg border ${getSessionColor(session.name)} ${isLastOdd ? "col-span-2 sm:col-span-1" : ""}`}
+                      >
+                        <span className="text-sm font-black tracking-widest">{session.name}</span>
+                        <div className="mt-2 flex flex-col gap-0.5">
+                          <span className="text-xs font-mono opacity-80">{formatDate(session.time)}</span>
+                          <span className="text-sm sm:text-base font-mono font-bold">{formatTime(session.time)}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

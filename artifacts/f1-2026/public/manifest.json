@@ -1,0 +1,26 @@
+{
+  "name": "F1 2026 Command Center",
+  "short_name": "F1 2026",
+  "description": "Live race schedule, standings and session reminders for the 2026 F1 World Championship.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#e8002d",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "news"],
+  "shortcuts": [
+    {
+      "name": "Race Calendar",
+      "url": "/",
+      "description": "View upcoming races"
+    }
+  ]
+}

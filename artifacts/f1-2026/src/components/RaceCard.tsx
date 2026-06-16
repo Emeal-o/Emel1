@@ -34,9 +34,9 @@ export default function RaceCard({
     switch (name) {
       case "P1": case "P2": case "P3":
         return "text-muted-foreground bg-muted/30 border-muted-foreground/20";
-      case "Q": case "SQ":
+      case "Q":
         return "text-foreground bg-secondary border-border";
-      case "SP":
+      case "SQ": case "SP":
         return "text-[hsl(45_90%_55%)] bg-[hsl(45_90%_50%/0.1)] border-[hsl(45_90%_50%/0.2)]";
       case "R":
         return "text-primary bg-primary/10 border-primary/20";

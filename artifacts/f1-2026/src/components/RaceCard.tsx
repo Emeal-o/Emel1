@@ -168,7 +168,7 @@ export default function RaceCard({
                   key={tab.id}
                   data-testid={`inner-tab-${race.round}-${tab.id}`}
                   onClick={() => setActiveInner(tab.id)}
-                  className={`px-3 sm:px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0
+                  className={`px-3 sm:px-5 py-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0
                     ${activeInner === tab.id
                       ? "text-foreground border-primary"
                       : "text-muted-foreground border-transparent hover:text-foreground/70"

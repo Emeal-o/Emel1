@@ -13,15 +13,9 @@ const NATIONALITY_FLAGS: Record<string, string> = {
 };
 
 const TEAM_COLORS: Record<string, string> = {
-  Mercedes: "#00D2BE",
-  Ferrari: "#DC0000",
-  McLaren: "#FF8000",
-  "Red Bull": "#3671C6",
-  "Alpine F1 Team": "#FF87BC",
-  "Aston Martin": "#358C75",
-  Williams: "#64C4FF",
-  "Haas F1 Team": "#B6BABD",
-  "Kick Sauber": "#52E252",
+  Mercedes: "#00D2BE", Ferrari: "#DC0000", McLaren: "#FF8000",
+  "Red Bull": "#3671C6", "Alpine F1 Team": "#FF87BC", "Aston Martin": "#358C75",
+  Williams: "#64C4FF", "Haas F1 Team": "#B6BABD", "Kick Sauber": "#52E252",
   "RB F1 Team": "#6692FF",
 };
 
@@ -49,9 +43,7 @@ export default function DriverComparison({ drivers, byRound }: Props) {
     if (byRound) {
       for (const set of byRound.values()) {
         for (const r of set.results) {
-          if (r.position <= 3) {
-            counts[r.driverId] = (counts[r.driverId] ?? 0) + 1;
-          }
+          if (r.position <= 3) counts[r.driverId] = (counts[r.driverId] ?? 0) + 1;
         }
       }
     }
@@ -60,49 +52,50 @@ export default function DriverComparison({ drivers, byRound }: Props) {
 
   if (!dA || !dB) return null;
 
-  const ptsA = parseFloat(dA.points) || 0;
-  const ptsB = parseFloat(dB.points) || 0;
+  const ptsA  = parseFloat(dA.points) || 0;
+  const ptsB  = parseFloat(dB.points) || 0;
   const winsA = parseInt(dA.wins as unknown as string) || 0;
   const winsB = parseInt(dB.wins as unknown as string) || 0;
-  const podA = podiums[dA.driverId] ?? 0;
-  const podB = podiums[dB.driverId] ?? 0;
+  const podA  = podiums[dA.driverId] ?? 0;
+  const podB  = podiums[dB.driverId] ?? 0;
   const maxPts = Math.max(ptsA, ptsB, 1);
-
   const colorA = getTeamColor(dA.team);
   const colorB = getTeamColor(dB.team);
 
   return (
-    <div className="flex flex-col gap-4 border border-border rounded-xl bg-card/40 p-4 sm:p-5">
+    <div className="flex flex-col gap-4 border border-border rounded-xl bg-card/40 p-4">
       {/* Header */}
       <div className="flex items-center gap-2">
         <GitCompareArrows className="w-4 h-4 text-primary" />
         <h3 className="text-sm font-black uppercase tracking-widest">Head-to-Head</h3>
       </div>
 
-      {/* Driver selectors */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { d: dA, id: idA, set: setIdA, exclude: idB, color: colorA },
-          { d: dB, id: idB, set: setIdB, exclude: idA, color: colorB },
-        ].map(({ d, set, exclude, color }, i) => (
-          <div key={i} className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-1 h-8 rounded-full shrink-0" style={{ backgroundColor: color }} />
+      {/* Driver selectors — side by side, compact */}
+      <div className="grid grid-cols-2 gap-2">
+        {([
+          { d: dA, set: setIdA, exclude: idB, color: colorA },
+          { d: dB, set: setIdB, exclude: idA, color: colorB },
+        ] as const).map(({ d, set, exclude, color }, i) => (
+          <div key={i} className="flex flex-col gap-1.5">
+            {/* Driver chip */}
+            <div className="flex items-center gap-1.5 min-w-0 bg-muted/20 rounded-lg px-2 py-1.5 border border-border/40">
+              <div className="w-[3px] h-6 rounded-full shrink-0" style={{ backgroundColor: color }} />
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-black uppercase tracking-wide truncate">
+                <span className="text-[11px] font-black uppercase tracking-wide truncate leading-tight">
                   {NATIONALITY_FLAGS[d.nationality] ?? ""} {d.familyName}
                 </span>
-                <span className="text-[9px] font-mono text-muted-foreground truncate">{d.team}</span>
+                <span className="text-[9px] font-mono text-muted-foreground truncate leading-tight">{d.code}</span>
               </div>
             </div>
+            {/* Selector */}
             <select
               value={d.driverId}
               onChange={(e) => set(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg text-xs font-mono px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full bg-background border border-border rounded-lg text-[11px] font-mono px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
             >
               {drivers.map((dr) => (
                 <option key={dr.driverId} value={dr.driverId} disabled={dr.driverId === exclude}>
-                  P{dr.position} {dr.familyName}
+                  P{dr.position} · {dr.code}
                 </option>
               ))}
             </select>
@@ -110,37 +103,12 @@ export default function DriverComparison({ drivers, byRound }: Props) {
         ))}
       </div>
 
-      {/* Stats comparison */}
-      <div className="flex flex-col gap-3">
-        <StatRow
-          label="Points"
-          valA={ptsA}
-          valB={ptsB}
-          maxVal={maxPts}
-          colorA={colorA}
-          colorB={colorB}
-          formatVal={(v) => v.toString()}
-          sub={ptsA !== ptsB ? `${Math.abs(ptsA - ptsB)} pt gap` : "Level on points"}
-        />
-        <StatRow
-          label="Wins"
-          valA={winsA}
-          valB={winsB}
-          maxVal={Math.max(winsA, winsB, 1)}
-          colorA={colorA}
-          colorB={colorB}
-          formatVal={(v) => v.toString()}
-        />
+      {/* Stat rows */}
+      <div className="flex flex-col gap-3 pt-1">
+        <StatRow label="Points"  valA={ptsA}  valB={ptsB}  maxVal={maxPts}                      colorA={colorA} colorB={colorB} sub={ptsA !== ptsB ? `${Math.abs(ptsA - ptsB)} pt gap` : "Level"} />
+        <StatRow label="Wins"    valA={winsA} valB={winsB} maxVal={Math.max(winsA, winsB, 1)}   colorA={colorA} colorB={colorB} />
         {(podA > 0 || podB > 0) && (
-          <StatRow
-            label="Podiums"
-            valA={podA}
-            valB={podB}
-            maxVal={Math.max(podA, podB, 1)}
-            colorA={colorA}
-            colorB={colorB}
-            formatVal={(v) => v.toString()}
-          />
+          <StatRow label="Podiums" valA={podA}  valB={podB}  maxVal={Math.max(podA, podB, 1)}    colorA={colorA} colorB={colorB} />
         )}
       </div>
     </div>
@@ -148,23 +116,10 @@ export default function DriverComparison({ drivers, byRound }: Props) {
 }
 
 function StatRow({
-  label,
-  valA,
-  valB,
-  maxVal,
-  colorA,
-  colorB,
-  formatVal,
-  sub,
+  label, valA, valB, maxVal, colorA, colorB, sub,
 }: {
-  label: string;
-  valA: number;
-  valB: number;
-  maxVal: number;
-  colorA: string;
-  colorB: string;
-  formatVal: (v: number) => string;
-  sub?: string;
+  label: string; valA: number; valB: number; maxVal: number;
+  colorA: string; colorB: string; sub?: string;
 }) {
   const pctA = (valA / maxVal) * 100;
   const pctB = (valB / maxVal) * 100;
@@ -172,42 +127,46 @@ function StatRow({
   const bWins = valB > valA;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        <span className={aWins ? "text-foreground" : ""}>{formatVal(valA)}</span>
-        <span>{label}</span>
-        <span className={bWins ? "text-foreground" : ""}>{formatVal(valB)}</span>
+    <div className="flex flex-col gap-1">
+      {/* Values + label */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[11px] font-mono">
+        <span className={`font-black tabular-nums ${aWins ? "text-foreground" : "text-muted-foreground"}`}>
+          {valA}
+        </span>
+        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70 text-center whitespace-nowrap">
+          {label}
+        </span>
+        <span className={`font-black tabular-nums text-right ${bWins ? "text-foreground" : "text-muted-foreground"}`}>
+          {valB}
+        </span>
       </div>
-      {/* Dual bar */}
-      <div className="flex gap-1 items-center h-2">
-        {/* A bar — right-aligned */}
-        <div className="flex-1 flex justify-end">
-          <div className="w-full h-2 rounded-full bg-muted/30 overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${pctA}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="h-full rounded-full float-right"
-              style={{ backgroundColor: colorA }}
-            />
-          </div>
+
+      {/* Dual bar — A grows right→left, B grows left→right, meet in middle */}
+      <div className="flex items-center gap-0.5 h-2">
+        {/* A bar: scaleX(-1) makes it grow from right */}
+        <div className="flex-1 h-2 rounded-l-full bg-muted/30 overflow-hidden" style={{ transform: "scaleX(-1)" }}>
+          <motion.div
+            className="h-full rounded-l-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${pctA}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{ backgroundColor: colorA }}
+          />
         </div>
-        {/* B bar — left-aligned */}
-        <div className="flex-1">
-          <div className="w-full h-2 rounded-full bg-muted/30 overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${pctB}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="h-full rounded-full"
-              style={{ backgroundColor: colorB }}
-            />
-          </div>
+        <div className="w-px h-3 bg-border/60 shrink-0" />
+        {/* B bar: normal left→right */}
+        <div className="flex-1 h-2 rounded-r-full bg-muted/30 overflow-hidden">
+          <motion.div
+            className="h-full rounded-r-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${pctB}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{ backgroundColor: colorB }}
+          />
         </div>
       </div>
-      {sub && (
-        <p className="text-center text-[9px] font-mono text-muted-foreground/60">{sub}</p>
-      )}
+
+      {sub && <p className="text-center text-[9px] font-mono text-muted-foreground/60">{sub}</p>}
     </div>
   );
 }

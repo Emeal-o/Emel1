@@ -85,7 +85,7 @@ export default function CircuitMapModal({ circuitName, open, onClose }: CircuitM
                 <div className="bg-[#0a0a12] rounded-xl border border-white/6 p-4 flex items-center justify-center aspect-square">
                   {path ? (
                     <svg
-                      viewBox="0 0 300 300"
+                      viewBox="0 0 500 500"
                       xmlns="http://www.w3.org/2000/svg"
                       className="w-full h-full"
                       role="img"
@@ -95,7 +95,7 @@ export default function CircuitMapModal({ circuitName, open, onClose }: CircuitM
                         d={path}
                         fill="none"
                         stroke="white"
-                        strokeWidth="7"
+                        strokeWidth="10"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         opacity="0.92"
@@ -115,7 +115,7 @@ export default function CircuitMapModal({ circuitName, open, onClose }: CircuitM
                 <div className="mt-3 flex items-center justify-center gap-2">
                   <div className="w-3 h-[3px] rounded-full bg-[#e10600]" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/25">
-                    Simplified layout · not to scale
+                    Accurate layout · not to scale
                   </span>
                   <div className="w-3 h-[3px] rounded-full bg-[#e10600]" />
                 </div>
@@ -137,8 +137,8 @@ function StartFinishMarker({ pathData }: { pathData: string }) {
   const y = parseFloat(match[2]);
   return (
     <>
-      <circle cx={x} cy={y} r={7} fill="#e10600" opacity={0.9} />
-      <circle cx={x} cy={y} r={4} fill="white" opacity={0.95} />
+      <circle cx={x} cy={y} r={12} fill="#e10600" opacity={0.9} />
+      <circle cx={x} cy={y} r={7} fill="white" opacity={0.95} />
     </>
   );
 }

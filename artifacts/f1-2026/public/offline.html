@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline — F1 Command Center</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #15151e;
+      color: #ffffff;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo-badge {
+      background: #e10600;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .logo-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .icon {
+      font-size: 4rem;
+      line-height: 1;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    p {
+      color: #a0a0b0;
+      font-size: 1rem;
+      max-width: 28rem;
+      line-height: 1.6;
+    }
+
+    .retry-btn {
+      margin-top: 0.5rem;
+      background: #e10600;
+      color: #fff;
+      border: none;
+      padding: 0.75rem 2rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .retry-btn:hover { opacity: 0.85; }
+
+    .status {
+      font-size: 0.8rem;
+      color: #606070;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <span class="logo-badge">F1</span>
+    <span class="logo-title">Command Center</span>
+  </div>
+
+  <div class="icon">📡</div>
+
+  <h1>You're Offline</h1>
+
+  <p>
+    No connection detected. Check your network and try again — the race
+    waits for no one.
+  </p>
+
+  <button class="retry-btn" onclick="window.location.reload()">
+    Retry
+  </button>
+
+  <p class="status">
+    Once reconnected, live race data and standings will reload automatically.
+  </p>
+</body>
+</html>

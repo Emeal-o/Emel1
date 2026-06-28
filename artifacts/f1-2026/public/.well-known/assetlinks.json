@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.abelo1.twa",
+    "sha256_cert_fingerprints": ["D0:A7:0B:B7:00:14:70:85:B3:A4:23:FD:2F:A6:5A:B4:8B:81:E3:C6:CF:AF:87:D3:A5:A6:6B:70:BF:79:5C:BA"]
+  }
+}]

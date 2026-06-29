@@ -7,9 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import RaceResults from "./RaceResults";
 import QualifyingResults from "./QualifyingResults";
 import CircuitInfo from "./CircuitInfo";
+import RaceFlowChart from "./RaceFlowChart";
 
-
-type InnerTab = "circuit" | "sessions" | "qualifying" | "results";
+type InnerTab = "circuit" | "sessions" | "qualifying" | "results" | "raceflow";
 
 export default function RaceCard({
   race,
@@ -56,7 +56,12 @@ export default function RaceCard({
     { id: "sessions",  label: "Sessions"     },
     ...(hasQualifying ? [{ id: "qualifying" as InnerTab, label: "Qualifying" }] : []),
     ...(hasResults    ? [{ id: "results"    as InnerTab, label: "Race"       }] : []),
+    ...(isPast        ? [{ id: "raceflow"   as InnerTab, label: "Race Flow"  }] : []),
   ];
+
+  // Find the race session timestamp (used by RaceFlowChart to look up OpenF1 session)
+  const raceSession = race.sessions.find((s) => s.name === "R");
+  const raceDate = raceSession?.time ?? race.sessions[race.sessions.length - 1]?.time ?? "";
 
   const p1 = results?.results[0];
   const p2 = results?.results[1];
@@ -212,6 +217,10 @@ export default function RaceCard({
 
               {hasResults && activeInner === "results" && (
                 <RaceResults results={results.results} />
+              )}
+
+              {isPast && activeInner === "raceflow" && raceDate && (
+                <RaceFlowChart raceDate={raceDate} />
               )}
             </div>
           </motion.div>

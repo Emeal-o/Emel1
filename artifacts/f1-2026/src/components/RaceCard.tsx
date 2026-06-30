@@ -5,27 +5,31 @@ import { QualifyingSet } from "../hooks/useF1Qualifying";
 import { ChevronDown, ChevronUp, MapPin, Zap, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RaceResults from "./RaceResults";
+import SprintResults from "./SprintResults";
 import QualifyingResults from "./QualifyingResults";
 import CircuitInfo from "./CircuitInfo";
 import RaceFlowChart from "./RaceFlowChart";
 
-type InnerTab = "circuit" | "sessions" | "qualifying" | "results" | "raceflow";
+type InnerTab = "circuit" | "sessions" | "qualifying" | "sprint" | "results" | "raceflow";
 
 export default function RaceCard({
   race,
   isNext,
   results,
+  sprintResults,
   qualifying,
 }: {
   race: RaceData;
   isNext?: boolean;
   results?: RaceResultSet;
+  sprintResults?: RaceResultSet;
   qualifying?: QualifyingSet;
 }) {
   const [expanded, setExpanded] = useState(isNext);
   const [activeInner, setActiveInner] = useState<InnerTab>("circuit");
   const isPast = race.status === "completed";
   const hasResults = isPast && !!results;
+  const hasSprintResults = isPast && race.isSprint && !!sprintResults;
   const hasQualifying = isPast && !!qualifying;
 
   const TZ = "Asia/Riyadh";
@@ -54,9 +58,10 @@ export default function RaceCard({
   const innerTabs: { id: InnerTab; label: string }[] = [
     { id: "circuit",   label: "Circuit"      },
     { id: "sessions",  label: "Sessions"     },
-    ...(hasQualifying ? [{ id: "qualifying" as InnerTab, label: "Qualifying" }] : []),
-    ...(hasResults    ? [{ id: "results"    as InnerTab, label: "Race"       }] : []),
-    ...(isPast        ? [{ id: "raceflow"   as InnerTab, label: "Race Flow"  }] : []),
+    ...(hasQualifying    ? [{ id: "qualifying"    as InnerTab, label: "Qualifying" }] : []),
+    ...(hasSprintResults ? [{ id: "sprint"        as InnerTab, label: "⚡ Sprint"  }] : []),
+    ...(hasResults       ? [{ id: "results"       as InnerTab, label: "Race"       }] : []),
+    ...(isPast           ? [{ id: "raceflow"      as InnerTab, label: "Race Flow"  }] : []),
   ];
 
   // Find the race session timestamp (used by RaceFlowChart to look up OpenF1 session)
@@ -213,6 +218,10 @@ export default function RaceCard({
 
               {hasQualifying && activeInner === "qualifying" && (
                 <QualifyingResults results={qualifying.results} />
+              )}
+
+              {hasSprintResults && activeInner === "sprint" && (
+                <SprintResults results={sprintResults!.results} />
               )}
 
               {hasResults && activeInner === "results" && (

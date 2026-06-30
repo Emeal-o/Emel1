@@ -378,6 +378,11 @@ export default function Home() {
                               ? resultsState.byRound.get(race.round)
                               : undefined
                           }
+                          sprintResults={
+                            resultsState.status === "success"
+                              ? resultsState.sprintByRound.get(race.round)
+                              : undefined
+                          }
                           qualifying={
                             qualifyingState.status === "success"
                               ? qualifyingState.byRound.get(race.round)

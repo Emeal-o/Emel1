@@ -163,6 +163,13 @@ export default function Home() {
     [schedule]
   );
 
+  const sprintRounds = useMemo(() =>
+    schedule.status === "success"
+      ? schedule.races.filter((r) => r.isSprint).map((r) => r.round)
+      : [],
+    [schedule]
+  );
+
   const qualifyingRounds = useMemo(() =>
     schedule.status === "success"
       ? schedule.races.filter((r) => r.qualifyingDone || r.status === "completed").map((r) => r.round)
@@ -170,11 +177,12 @@ export default function Home() {
     [schedule]
   );
 
-  const resultsState    = useF1Results(completedRounds, refreshMs);
+  const resultsState    = useF1Results(completedRounds, sprintRounds, refreshMs);
   const qualifyingState = useF1Qualifying(qualifyingRounds, refreshMs);
 
   const byRound = resultsState.status === "success" ? resultsState.byRound : null;
-  const pointsHistory = useF1PointsHistory(byRound);
+  const sprintByRound = resultsState.status === "success" ? resultsState.sprintByRound : null;
+  const pointsHistory = useF1PointsHistory(byRound, sprintByRound);
 
   const allRaces     = schedule.status === "success" ? schedule.races : [];
   const visibleRaces = filterRaces(allRaces, calFilter);

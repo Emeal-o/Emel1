@@ -29,6 +29,15 @@ type OF1Driver = {
   team_name: string;
 };
 
+type OF1Stint = {
+  driver_number: number;
+  stint_number: number;
+  lap_start: number;
+  lap_end: number | null;
+  compound: string | null;
+  tyre_age_at_start: number;
+};
+
 // ─── Public types ────────────────────────────────────────────────────────────
 
 export type DriverFlowInfo = {
@@ -41,6 +50,8 @@ export type DriverFlowInfo = {
 /** chartData[i] = { lap: i+1, d1: 5, d16: 1, d4: 3, ... } */
 export type FlowDataPoint = Record<string, number>;
 
+export type PitEntry = { driverNum: number; from: string; to: string };
+
 export type RaceFlowState =
   | { status: "idle" }
   | { status: "loading" }
@@ -51,6 +62,8 @@ export type RaceFlowState =
       drivers: DriverFlowInfo[];
       /** driverNum → set of lap numbers where they came out of the pits */
       pitStops: Map<number, Set<number>>;
+      /** lap number → pit entries at that lap (compound transitions) */
+      pitSummary: Map<number, PitEntry[]>;
       totalLaps: number;
     };
 
@@ -121,10 +134,22 @@ function findSessionKey(sessions: OF1Session[], raceDate: string): number | null
 
 // ─── Data processing ─────────────────────────────────────────────────────────
 
+function compoundAbbrev(c: string | null): string {
+  switch (c?.toUpperCase()) {
+    case "SOFT": return "S";
+    case "MEDIUM": return "M";
+    case "HARD": return "H";
+    case "INTERMEDIATE": return "I";
+    case "WET": return "W";
+    default: return c?.charAt(0) ?? "?";
+  }
+}
+
 function processData(
   positions: OF1Position[],
   laps: OF1Lap[],
-  driverList: OF1Driver[]
+  driverList: OF1Driver[],
+  stints: OF1Stint[]
 ): Omit<RaceFlowState & { status: "success" }, "status"> {
   // Group laps by driver
   const lapsByDriver = new Map<number, OF1Lap[]>();
@@ -219,7 +244,29 @@ function processData(
     chartData.push(entry);
   }
 
-  return { chartData, drivers, pitStops, totalLaps };
+  // Build pitSummary: lap → [{driverNum, from, to}]
+  const pitSummary = new Map<number, PitEntry[]>();
+  const stintsByDriver = new Map<number, OF1Stint[]>();
+  for (const stint of stints) {
+    if (!stintsByDriver.has(stint.driver_number)) stintsByDriver.set(stint.driver_number, []);
+    stintsByDriver.get(stint.driver_number)!.push(stint);
+  }
+  for (const arr of stintsByDriver.values()) arr.sort((a, b) => a.stint_number - b.stint_number);
+  for (const [driverNum, driverStints] of stintsByDriver) {
+    for (let i = 1; i < driverStints.length; i++) {
+      const prev = driverStints[i - 1];
+      const curr = driverStints[i];
+      const pitLap = curr.lap_start;
+      if (!pitSummary.has(pitLap)) pitSummary.set(pitLap, []);
+      pitSummary.get(pitLap)!.push({
+        driverNum,
+        from: compoundAbbrev(prev.compound),
+        to: compoundAbbrev(curr.compound),
+      });
+    }
+  }
+
+  return { chartData, drivers, pitStops, pitSummary, totalLaps };
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
@@ -253,19 +300,25 @@ export function useRaceFlow(raceDate: string, enabled: boolean): RaceFlowState {
           return;
         }
 
-        // Step 2: fetch positions + laps + drivers in parallel
-        const [posRes, lapRes, driverRes] = await Promise.all([
+        // Step 2: fetch positions + laps + drivers + stints in parallel
+        const [posRes, lapRes, driverRes, stintRes] = await Promise.all([
           fetch(`https://api.openf1.org/v1/position?session_key=${sessionKey}`),
           fetch(`https://api.openf1.org/v1/laps?session_key=${sessionKey}`),
           fetch(`https://api.openf1.org/v1/drivers?session_key=${sessionKey}`),
+          fetch(`https://api.openf1.org/v1/stints?session_key=${sessionKey}`),
         ]);
 
         if (!posRes.ok || !lapRes.ok || !driverRes.ok) {
           throw new Error("Failed to fetch race telemetry from OpenF1");
         }
 
-        const [positions, laps, driverList]: [OF1Position[], OF1Lap[], OF1Driver[]] =
-          await Promise.all([posRes.json(), lapRes.json(), driverRes.json()]);
+        const [positions, laps, driverList, stints]: [OF1Position[], OF1Lap[], OF1Driver[], OF1Stint[]] =
+          await Promise.all([
+            posRes.json(),
+            lapRes.json(),
+            driverRes.json(),
+            stintRes.ok ? stintRes.json() : Promise.resolve([]),
+          ]);
 
         if (cancelled) return;
 
@@ -274,7 +327,7 @@ export function useRaceFlow(raceDate: string, enabled: boolean): RaceFlowState {
           return;
         }
 
-        const result = processData(positions, laps, driverList);
+        const result = processData(positions, laps, driverList, stints);
         setState({ status: "success", ...result });
       } catch (err: unknown) {
         if (!cancelled)

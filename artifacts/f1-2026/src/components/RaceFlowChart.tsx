@@ -9,7 +9,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
-import { useRaceFlow, DriverFlowInfo, FlowDataPoint } from "../hooks/useRaceFlow";
+import { useRaceFlow, DriverFlowInfo, FlowDataPoint, PitEntry } from "../hooks/useRaceFlow";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 // ─── Mobile breakpoint hook ───────────────────────────────────────────────────
@@ -92,6 +92,59 @@ function StandingsStrip({ lap, standings }: StandingsStripProps) {
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── Pit stop summary bar ────────────────────────────────────────────────────
+
+interface PitSummaryBarProps {
+  entries: PitEntry[];
+  drivers: DriverFlowInfo[];
+}
+
+const COMPOUND_COLOR: Record<string, string> = {
+  S: "#e8002d",
+  M: "#ffd700",
+  H: "#ffffff",
+  I: "#43b244",
+  W: "#0067ff",
+};
+
+function CompoundBadge({ abbrev }: { abbrev: string }) {
+  const bg = COMPOUND_COLOR[abbrev] ?? "#888";
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-sm font-black text-[8px]"
+      style={{ backgroundColor: bg, color: "#000", width: 13, height: 13, lineHeight: 1 }}
+    >
+      {abbrev}
+    </span>
+  );
+}
+
+function PitSummaryBar({ entries, drivers }: PitSummaryBarProps) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap px-2.5 py-1.5 rounded-lg border border-border/30 bg-card/40 text-[10px] font-mono">
+      <span className="text-muted-foreground/50 uppercase tracking-widest shrink-0 text-[9px]">Pit stop:</span>
+      {entries.map(({ driverNum, from, to }) => {
+        const driver = drivers.find((d) => d.number === driverNum);
+        if (!driver) return null;
+        return (
+          <span key={driverNum} className="inline-flex items-center gap-1">
+            <span
+              className="inline-flex items-center justify-center rounded-full font-black shrink-0"
+              style={{ backgroundColor: driver.color, color: "#000", width: 14, height: 14, fontSize: 7 }}
+            >
+              {driver.number}
+            </span>
+            <span style={{ color: driver.color }} className="font-bold">{driver.code}</span>
+            <CompoundBadge abbrev={from} />
+            <span className="text-muted-foreground/40">→</span>
+            <CompoundBadge abbrev={to} />
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -226,7 +279,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   }
 
   // ── Success ──────────────────────────────────────────────────────────────
-  const { chartData, drivers, pitStops, totalLaps } = flowState;
+  const { chartData, drivers, pitStops, pitSummary, totalLaps } = flowState;
 
   const hasSelection = activeDrivers.size > 0;
   const isScrubbing = scrubbedLap !== null;
@@ -418,6 +471,17 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Pit stop summary — shown while scrubbing if any driver pitted at this lap */}
+      {isScrubbing && (() => {
+        const entries = pitSummary.get(scrubbedLap) ?? [];
+        if (!entries.length) return null;
+        const visible = hasSelection
+          ? entries.filter((e) => activeDrivers.has(e.driverNum))
+          : entries;
+        if (!visible.length) return null;
+        return <PitSummaryBar entries={visible} drivers={drivers} />;
+      })()}
 
       {/* Driver legend — wrap into multiple rows, 5-wide chips */}
       <div className="flex flex-wrap gap-1 border-t border-border/20 pt-1.5">

@@ -413,7 +413,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9, fontFamily: "monospace" }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v: number) => `P${v}`}
+              tickFormatter={(v: number) => String(v)}
               width={isMobile ? 24 : 28}
             />
 

@@ -273,7 +273,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
       chartData.map((entry) => (entry[`d${d.number}`] as number | undefined) ?? 0)
     )
   );
-  const yTicks = [1, 5, 10, 15, 20, ...(maxPosition > 20 ? [maxPosition] : [])];
+  const yTicks = Array.from({ length: maxPosition }, (_, i) => i + 1);
 
   const sortedDrivers = [...drivers].sort((a, b) => {
     const pa = lastEntry?.[`d${a.number}`] ?? 99;
@@ -438,9 +438,18 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
               style={{ opacity: isFaded ? 0.2 : Math.max(opacity, 0.35) }}
             >
               <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: driver.color }}
-              />
+                className="inline-flex items-center justify-center rounded-full font-black shrink-0"
+                style={{
+                  backgroundColor: driver.color,
+                  color: "#000",
+                  width: 14,
+                  height: 14,
+                  fontSize: 7,
+                  lineHeight: 1,
+                }}
+              >
+                {driver.number}
+              </span>
               <span style={{ color: driver.color }}>{driver.code}</span>
             </button>
           );

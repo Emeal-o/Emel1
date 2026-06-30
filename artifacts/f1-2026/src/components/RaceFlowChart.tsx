@@ -356,11 +356,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
       {/* Driver legend
           Desktop: wraps into multiple rows
           Mobile:  single row, scrolls horizontally */}
-      <div
-        className={`flex gap-1 border-t border-border/20 pt-1.5 ${
-          isMobile ? "overflow-x-auto pb-1 scrollbar-none" : "flex-wrap"
-        }`}
-      >
+      <div className="flex flex-wrap gap-1 border-t border-border/20 pt-1.5">
         {sortedDrivers.map((driver) => {
           const isActive = activeDrivers.has(driver.number);
           const isFaded = hasSelection && !isActive;

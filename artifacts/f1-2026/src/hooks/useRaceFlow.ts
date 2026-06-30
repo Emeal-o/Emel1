@@ -266,6 +266,18 @@ function processData(
     }
   }
 
+  // Fallback: for any pit lap in pitStops that stints didn't cover,
+  // add an entry without compound data so the bar still appears.
+  for (const [driverNum, lapSet] of pitStops) {
+    for (const pitLap of lapSet) {
+      const alreadyCovered = pitSummary.get(pitLap)?.some((e) => e.driverNum === driverNum);
+      if (!alreadyCovered) {
+        if (!pitSummary.has(pitLap)) pitSummary.set(pitLap, []);
+        pitSummary.get(pitLap)!.push({ driverNum, from: "?", to: "?" });
+      }
+    }
+  }
+
   return { chartData, drivers, pitStops, pitSummary, totalLaps };
 }
 

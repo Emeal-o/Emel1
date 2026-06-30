@@ -139,9 +139,15 @@ function PitSummaryBar({ entries, drivers }: PitSummaryBarProps) {
               {driver.number}
             </span>
             <span style={{ color: driver.color }} className="font-bold">{driver.code}</span>
-            <CompoundBadge abbrev={from} />
-            <span className="text-muted-foreground/40">→</span>
-            <CompoundBadge abbrev={to} />
+            {from === "?" && to === "?" ? (
+              <span className="text-muted-foreground/40 text-[9px]">pitted</span>
+            ) : (
+              <>
+                <CompoundBadge abbrev={from} />
+                <span className="text-muted-foreground/40">→</span>
+                <CompoundBadge abbrev={to} />
+              </>
+            )}
           </span>
         );
       })}

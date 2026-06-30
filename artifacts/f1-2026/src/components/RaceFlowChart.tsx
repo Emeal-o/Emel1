@@ -68,7 +68,7 @@ function StandingsStrip({ lap, standings }: StandingsStripProps) {
         {standings.map(({ driver, position }) => (
           <span
             key={driver.number}
-            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold"
             style={{
               backgroundColor: driver.color + "28",
               color: driver.color,
@@ -76,7 +76,19 @@ function StandingsStrip({ lap, standings }: StandingsStripProps) {
             }}
           >
             <span className="opacity-70">{ordinal(position)}</span>
-            &nbsp;{driver.code}
+            <span
+              className="inline-flex items-center justify-center rounded-full text-[8px] font-black shrink-0"
+              style={{
+                backgroundColor: driver.color,
+                color: "#000",
+                width: 14,
+                height: 14,
+                lineHeight: 1,
+              }}
+            >
+              {driver.number}
+            </span>
+            {driver.code}
           </span>
         ))}
       </div>
@@ -244,11 +256,12 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
     return { opacity: 1, width: 1.5 };
   }
 
-  // Standings at the currently scrubbed lap
+  // Standings at the currently scrubbed lap, filtered by selection if any
   function getStandingsAtLap(lap: number) {
     const entry = chartData.find((d) => (d["lap"] as number) === lap) ?? lastEntry;
     if (!entry) return [];
-    return drivers
+    const pool = hasSelection ? drivers.filter((d) => activeDrivers.has(d.number)) : drivers;
+    return pool
       .map((d) => ({ driver: d, position: entry[`d${d.number}`] as number | undefined }))
       .filter((r): r is { driver: DriverFlowInfo; position: number } => r.position !== undefined)
       .sort((a, b) => a.position - b.position);
@@ -385,13 +398,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                       isFaded={isFaded}
                     />
                   )}
-                  activeDot={{
-                    r: 4,
-                    stroke: driver.color,
-                    strokeWidth: 2,
-                    fill: "hsl(var(--background))",
-                    opacity: opacity,
-                  }}
+                  activeDot={false}
                   connectNulls
                   isAnimationActive={false}
                   onClick={() => handleDriverClick(driver.number)}

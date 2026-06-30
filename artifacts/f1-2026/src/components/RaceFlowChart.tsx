@@ -300,7 +300,6 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                     stroke: driver.color,
                     strokeWidth: 2,
                     fill: "hsl(var(--background))",
-                    onClick: () => handleDriverClick(driver.number),
                   }}
                   connectNulls
                   isAnimationActive={false}
@@ -347,7 +346,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
         })}
         {hasSelection && (
           <button
-            onClick={() => setActiveDrivers(new Set())}
+            onClick={() => setActiveDrivers(() => new Set())}
             className="px-1.5 py-0.5 rounded text-[9px] font-mono text-muted-foreground hover:text-foreground border border-border/30 hover:border-border transition-colors"
           >
             Clear

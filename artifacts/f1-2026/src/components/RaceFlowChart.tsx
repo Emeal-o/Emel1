@@ -342,8 +342,8 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
 
   // Responsive chart sizing
   const chartMargin = isMobile
-    ? { top: 6, right: 10, left: -28, bottom: 4 }
-    : { top: 8, right: 52, left: -22, bottom: 4 };
+    ? { top: 6, right: 10, left: 0, bottom: 4 }
+    : { top: 8, right: 52, left: 0, bottom: 4 };
   const chartHeight = isMobile ? 320 : 420;
 
   // Chart event handlers for the scrubber

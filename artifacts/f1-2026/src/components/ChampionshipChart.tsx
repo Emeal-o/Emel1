@@ -28,12 +28,20 @@ function driverColor(teamId: string, idx: number): string {
   return TEAM_COLORS[teamId] ?? `hsl(${(idx * 47) % 360}, 70%, 60%)`;
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label, sprintShortNames }: any) {
   if (!active || !payload?.length) return null;
   const sorted = [...payload].sort((a, b) => b.value - a.value);
+  const isSprint = sprintShortNames.has(label);
   return (
     <div className="bg-card border border-border rounded-xl p-3 shadow-xl min-w-[140px]">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
+      <div className="flex items-center gap-1.5 mb-2">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+        {isSprint && (
+          <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-[hsl(45_90%_50%/0.15)] text-[hsl(45_90%_60%)] border border-[hsl(45_90%_50%/0.3)] leading-none">
+            ⚡SP
+          </span>
+        )}
+      </div>
       {sorted.map((entry: any) => (
         <div key={entry.dataKey} className="flex items-center justify-between gap-4 py-0.5">
           <div className="flex items-center gap-1.5">
@@ -61,6 +69,42 @@ function CustomLegend({ payload }: any) {
   );
 }
 
+function SprintAwareTick({
+  x, y, payload, sprintShortNames,
+}: {
+  x?: number; y?: number;
+  payload?: { value: string };
+  sprintShortNames: Set<string>;
+}) {
+  if (!payload) return null;
+  const isSprint = sprintShortNames.has(payload.value);
+  return (
+    <g transform={`translate(${x ?? 0},${y ?? 0})`}>
+      <text
+        dy={12}
+        textAnchor="middle"
+        fill="hsl(var(--muted-foreground))"
+        fontSize={10}
+        fontFamily="Space Mono, monospace"
+      >
+        {payload.value}
+      </text>
+      {isSprint && (
+        <text
+          dy={23}
+          textAnchor="middle"
+          fill="hsl(45 90% 60%)"
+          fontSize={7}
+          fontFamily="Space Mono, monospace"
+          fontWeight="bold"
+        >
+          ⚡SP
+        </text>
+      )}
+    </g>
+  );
+}
+
 export default function ChampionshipChart({ history }: { history: PointsHistory }) {
   const { rows, topDrivers } = history;
 
@@ -72,9 +116,16 @@ export default function ChampionshipChart({ history }: { history: PointsHistory 
     );
   }
 
-  // Build flat chart data: each row has { shortName, [driverCode]: pts }
+  // Set of shortNames that are sprint weekends — used by tick + tooltip
+  const sprintShortNames = new Set(rows.filter((r) => r.isSprint).map((r) => r.shortName));
+  const hasAnySprint = sprintShortNames.size > 0;
+
+  // Build flat chart data: each row has { shortName, isSprint, [driverCode]: pts }
   const chartData = rows.map((row) => {
-    const point: Record<string, number | string> = { shortName: row.shortName };
+    const point: Record<string, number | string | boolean> = {
+      shortName: row.shortName,
+      isSprint: row.isSprint,
+    };
     for (const d of topDrivers) {
       point[d.code] = row.drivers[d.code] ?? 0;
     }
@@ -84,9 +135,16 @@ export default function ChampionshipChart({ history }: { history: PointsHistory 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-          Points Progression — Top {topDrivers.length}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+            Points Progression — Top {topDrivers.length}
+          </h3>
+          {hasAnySprint && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[hsl(45_90%_50%/0.12)] text-[hsl(45_90%_60%)] border border-[hsl(45_90%_50%/0.25)] leading-none">
+              ⚡ includes sprint pts
+            </span>
+          )}
+        </div>
         <span className="text-[10px] font-mono text-muted-foreground">
           After Round {rows[rows.length - 1]?.round}
         </span>
@@ -94,13 +152,13 @@ export default function ChampionshipChart({ history }: { history: PointsHistory 
 
       <div
         className="w-full overflow-x-auto -mx-0"
-        style={{ minHeight: 280 }}
+        style={{ minHeight: hasAnySprint ? 300 : 280 }}
       >
         <div style={{ minWidth: Math.max(340, rows.length * 52) }}>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={hasAnySprint ? 300 : 280}>
             <LineChart
               data={chartData}
-              margin={{ top: 8, right: 16, left: -8, bottom: 0 }}
+              margin={{ top: 8, right: 16, left: -8, bottom: hasAnySprint ? 12 : 0 }}
             >
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -109,9 +167,12 @@ export default function ChampionshipChart({ history }: { history: PointsHistory 
               />
               <XAxis
                 dataKey="shortName"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "Space Mono" }}
+                tick={(props) => (
+                  <SprintAwareTick {...props} sprintShortNames={sprintShortNames} />
+                )}
                 axisLine={{ stroke: "hsl(var(--border))" }}
                 tickLine={false}
+                height={hasAnySprint ? 36 : 24}
               />
               <YAxis
                 tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "Space Mono" }}
@@ -119,7 +180,7 @@ export default function ChampionshipChart({ history }: { history: PointsHistory 
                 tickLine={false}
                 width={32}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip sprintShortNames={sprintShortNames} />} />
               <Legend content={<CustomLegend />} />
               {topDrivers.map((driver, idx) => (
                 <Line

@@ -11,6 +11,7 @@ export type DriverPointsRow = {
 export type PointsHistoryRow = {
   round: number;
   shortName: string;
+  isSprint: boolean;
   drivers: Record<string, number>;
 };
 
@@ -67,7 +68,7 @@ export function useF1PointsHistory(
         driverMeta[r.code] = { driverId: r.driverId, code: r.code, teamId: r.teamId };
       }
 
-      // Sprint points (additive — sprint weekends have both)
+      // Sprint points — additive for sprint weekends
       const sprintSet = sprintByRound?.get(round);
       if (sprintSet) {
         for (const r of sprintSet.results) {
@@ -84,6 +85,7 @@ export function useF1PointsHistory(
       return {
         round,
         shortName: RACE_SHORT[set.raceName] ?? set.raceName.slice(0, 3).toUpperCase(),
+        isSprint: sprintByRound?.has(round) ?? false,
         drivers: { ...cumulative },
       };
     });

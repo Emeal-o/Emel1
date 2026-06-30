@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -11,15 +11,33 @@ import {
 import { useRaceFlow, DriverFlowInfo, FlowDataPoint } from "../hooks/useRaceFlow";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
+// ─── Mobile breakpoint hook ───────────────────────────────────────────────────
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 640
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
-function FlowSkeleton() {
+function FlowSkeleton({ isMobile }: { isMobile: boolean }) {
   return (
     <div className="flex flex-col gap-3 animate-pulse">
-      <div className="w-full h-[400px] rounded-lg bg-muted/20 border border-border/30" />
-      <div className="flex flex-wrap gap-1">
+      <div
+        className="w-full rounded-lg bg-muted/20 border border-border/30"
+        style={{ height: isMobile ? 300 : 400 }}
+      />
+      <div className="flex gap-1 overflow-hidden">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="h-5 w-12 rounded bg-muted/20" />
+          <div key={i} className="h-5 w-10 shrink-0 rounded bg-muted/20" />
         ))}
       </div>
     </div>
@@ -47,14 +65,13 @@ function CustomTooltip({ active, payload, label, drivers, activeDrivers }: Toolt
     .filter((r): r is { driver: DriverFlowInfo; position: number } => r.position !== undefined)
     .sort((a, b) => a.position - b.position);
 
-  // Show only selected drivers when a selection exists; otherwise top 8
   const hasSelection = activeDrivers.size > 0;
   const displayed = hasSelection
     ? rows.filter((r) => activeDrivers.has(r.driver.number))
     : rows.slice(0, 8);
 
   return (
-    <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg p-2.5 shadow-xl min-w-[130px]">
+    <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg p-2.5 shadow-xl min-w-[120px]">
       <div className="text-[10px] font-bold text-muted-foreground mb-1.5 font-mono uppercase tracking-widest">
         Lap {label}
       </div>
@@ -72,7 +89,7 @@ function CustomTooltip({ active, payload, label, drivers, activeDrivers }: Toolt
       ))}
       {!hasSelection && rows.length > 8 && (
         <div className="text-[9px] text-muted-foreground/40 mt-1 font-mono">
-          +{rows.length - 8} more · click line to focus
+          +{rows.length - 8} more · tap line to focus
         </div>
       )}
     </div>
@@ -96,20 +113,18 @@ function PitDot({ cx, cy, payload, driverNum, color, pitStops, isFaded }: PitDot
   const lap = payload["lap"] as number;
   if (!pitStops.get(driverNum)?.has(lap)) return null;
 
-  // Dim non-selected markers to match the line's dimmed opacity (~15%)
-  const opacity = isFaded ? 0.15 : 1;
-
   return (
-    <g opacity={opacity}>
-      {/* Outer ring — slightly smaller than before (r 6→4) */}
+    <g opacity={isFaded ? 0.15 : 1}>
       <circle cx={cx} cy={cy} r={4} fill="none" stroke={color} strokeWidth={1.5} />
-      {/* Inner filled dot — r 3→2 */}
       <circle cx={cx} cy={cy} r={2} fill={color} />
     </g>
   );
 }
 
 // ─── End-of-line driver badge ─────────────────────────────────────────────────
+//
+// Desktop: colored pill with driver number text (needs ~52px right margin)
+// Mobile:  just a 3px-wide colored tick (only needs ~10px right margin)
 
 interface EndBadgeProps {
   x?: number;
@@ -119,18 +134,32 @@ interface EndBadgeProps {
   driver: DriverFlowInfo;
   totalLaps: number;
   isFaded: boolean;
+  compact: boolean; // mobile mode
 }
 
-function EndBadge({ x, y, index, value, driver, totalLaps, isFaded }: EndBadgeProps) {
+function EndBadge({ x, y, index, value, driver, totalLaps, isFaded, compact }: EndBadgeProps) {
   if (x === undefined || y === undefined || index !== totalLaps - 1 || value === undefined) {
     return null;
   }
+
+  const opacity = isFaded ? 0.15 : 1;
+
+  if (compact) {
+    // Mobile: a slim 3×10 tick mark — no text, no margin eat
+    return (
+      <g opacity={opacity}>
+        <rect x={x + 3} y={y - 5} width={3} height={10} rx={1} fill={driver.color} fillOpacity={0.85} />
+      </g>
+    );
+  }
+
+  // Desktop: full numbered pill
   const label = String(driver.number);
   const w = Math.max(label.length * 7 + 6, 22);
   const h = 14;
 
   return (
-    <g opacity={isFaded ? 0.15 : 1}>
+    <g opacity={opacity}>
       <rect x={x + 5} y={y - h / 2} width={w} height={h} rx={3} fill={driver.color} fillOpacity={0.9} />
       <text
         x={x + 5 + w / 2}
@@ -155,8 +184,8 @@ interface RaceFlowChartProps {
 }
 
 export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
-  // Multi-select: Set of driver numbers currently highlighted
   const [activeDrivers, setActiveDrivers] = useState<Set<number>>(new Set());
+  const isMobile = useIsMobile();
 
   const flowState = useRaceFlow(raceDate, true);
 
@@ -173,7 +202,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   if (flowState.status === "idle" || flowState.status === "loading") {
     return (
       <div className="flex flex-col gap-3">
-        <FlowSkeleton />
+        <FlowSkeleton isMobile={isMobile} />
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
           <RefreshCw className="w-3 h-3 animate-spin" />
           Fetching race telemetry from OpenF1…
@@ -200,7 +229,6 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
 
   const hasSelection = activeDrivers.size > 0;
 
-  // Dynamic Y-axis: at least P1–P20, extended if more cars started
   const maxPosition = Math.max(
     20,
     ...drivers.flatMap((d) =>
@@ -209,7 +237,6 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   );
   const yTicks = [1, 5, 10, 15, 20, ...(maxPosition > 20 ? [maxPosition] : [])];
 
-  // Sort legend by final position
   const sortedDrivers = [...drivers].sort((a, b) => {
     const lastEntry = chartData[chartData.length - 1];
     const pa = lastEntry?.[`d${a.number}`] ?? 99;
@@ -217,27 +244,35 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
     return pa - pb;
   });
 
+  // Responsive chart sizing
+  // Mobile: compact tick mark needs only 10px right margin vs 52px desktop pill
+  const chartMargin = isMobile
+    ? { top: 6, right: 10, left: -28, bottom: 4 }
+    : { top: 8, right: 52, left: -22, bottom: 4 };
+  const chartHeight = isMobile ? 320 : 420;
+
   return (
     <div className="flex flex-col gap-2">
-      {/* Info bar + pit-stop key on same row */}
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/60">
-        <span>Position by lap · {totalLaps} laps · {drivers.length} drivers</span>
-        <span className="flex items-center gap-1">
+      {/* Info bar — single line on mobile by abbreviating */}
+      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 gap-2">
+        <span className="truncate">
+          {isMobile
+            ? `${totalLaps} laps · ${drivers.length} drivers`
+            : `Position by lap · ${totalLaps} laps · ${drivers.length} drivers`}
+        </span>
+        <span className="flex items-center gap-1 shrink-0">
           <span className="w-3 h-px inline-block bg-muted-foreground/40" />
           <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 inline-block" />
           <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 inline-block" />
           <span className="w-1 h-1 rounded-full bg-muted-foreground/40 inline-block" />
-          pit stop
+          <span>pit</span>
         </span>
       </div>
 
-      {/* Chart — taller to give lines more room */}
+      {/* Chart */}
       <div className="w-full select-none" style={{ touchAction: "pan-y" }}>
-        <ResponsiveContainer width="100%" height={420}>
-          <LineChart
-            data={chartData}
-            margin={{ top: 8, right: 52, left: -22, bottom: 4 }}
-          >
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <LineChart data={chartData} margin={chartMargin}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="rgba(255,255,255,0.05)"
@@ -262,14 +297,11 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `P${v}`}
-              width={28}
+              width={isMobile ? 24 : 28}
             />
             <Tooltip
               content={
-                <CustomTooltip
-                  drivers={drivers}
-                  activeDrivers={activeDrivers}
-                />
+                <CustomTooltip drivers={drivers} activeDrivers={activeDrivers} />
               }
               cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1, strokeDasharray: "4 2" }}
             />
@@ -311,6 +343,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                       driver={driver}
                       totalLaps={totalLaps}
                       isFaded={isFaded}
+                      compact={isMobile}
                     />
                   )}
                 />
@@ -320,8 +353,14 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
         </ResponsiveContainer>
       </div>
 
-      {/* Driver legend — compact pills */}
-      <div className="flex flex-wrap gap-1 border-t border-border/20 pt-1.5">
+      {/* Driver legend
+          Desktop: wraps into multiple rows
+          Mobile:  single row, scrolls horizontally */}
+      <div
+        className={`flex gap-1 border-t border-border/20 pt-1.5 ${
+          isMobile ? "overflow-x-auto pb-1 scrollbar-none" : "flex-wrap"
+        }`}
+      >
         {sortedDrivers.map((driver) => {
           const isActive = activeDrivers.has(driver.number);
           const isFaded = hasSelection && !isActive;
@@ -330,7 +369,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
               key={driver.number}
               onClick={() => handleDriverClick(driver.number)}
               title={`${driver.code} #${driver.number} · ${driver.teamName}`}
-              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-all duration-150 border ${
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-all duration-150 border shrink-0 ${
                 isActive
                   ? "border-white/20 bg-white/5"
                   : "border-transparent hover:bg-white/5"
@@ -347,7 +386,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
         {hasSelection && (
           <button
             onClick={() => setActiveDrivers(() => new Set())}
-            className="px-1.5 py-0.5 rounded text-[9px] font-mono text-muted-foreground hover:text-foreground border border-border/30 hover:border-border transition-colors"
+            className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-mono text-muted-foreground hover:text-foreground border border-border/30 hover:border-border transition-colors"
           >
             Clear
           </button>
@@ -355,7 +394,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
       </div>
 
       <div className="text-[9px] text-muted-foreground/30 font-mono">
-        Data: OpenF1 · Circles indicate pit stop laps · Click drivers to compare
+        Data: OpenF1 · Circles = pit stops · Tap drivers to compare
       </div>
     </div>
   );

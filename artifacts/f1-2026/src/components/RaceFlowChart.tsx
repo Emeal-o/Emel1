@@ -185,6 +185,15 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   const handleDriverClick = (num: number) =>
     setActiveDriver((prev) => (prev === num ? null : num));
 
+  // Dynamic Y-axis domain: at least P1–P20, extended if field has more cars (e.g. 22 starters)
+  const maxPosition = Math.max(
+    20,
+    ...drivers.flatMap((d) =>
+      chartData.map((entry) => (entry[`d${d.number}`] as number | undefined) ?? 0)
+    )
+  );
+  const yTicks = [1, 5, 10, 15, 20, ...(maxPosition > 20 ? [maxPosition] : [])];
+
   // Sort driver legend by final position
   const sortedDrivers = [...drivers].sort((a, b) => {
     const lastEntry = chartData[chartData.length - 1];
@@ -232,8 +241,8 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
             />
             <YAxis
               reversed
-              domain={[1, 20]}
-              ticks={[1, 5, 10, 15, 20]}
+              domain={[1, maxPosition]}
+              ticks={yTicks}
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9, fontFamily: "monospace" }}
               tickLine={false}
               axisLine={false}

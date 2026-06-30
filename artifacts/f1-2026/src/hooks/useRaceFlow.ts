@@ -82,20 +82,41 @@ async function getSessions2026(): Promise<OF1Session[]> {
   return _sessionsFetch;
 }
 
+const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
+
 function findSessionKey(sessions: OF1Session[], raceDate: string): number | null {
   if (!sessions.length) return null;
+
   const raceTs = new Date(raceDate).getTime();
+  if (isNaN(raceTs)) {
+    console.warn("[RaceFlow] Invalid raceDate — cannot match session:", { raceDate });
+    return null;
+  }
+
   let best: OF1Session | null = null;
   let bestDiff = Infinity;
   for (const s of sessions) {
-    const diff = Math.abs(new Date(s.date_start).getTime() - raceTs);
+    const sessionTs = new Date(s.date_start).getTime();
+    if (isNaN(sessionTs)) continue; // skip sessions with unparseable dates
+    const diff = Math.abs(sessionTs - raceTs);
     if (diff < bestDiff) {
       bestDiff = diff;
       best = s;
     }
   }
-  // Allow up to 4 days difference to account for timezone/timing variability
-  return best && bestDiff < 4 * 24 * 60 * 60 * 1000 ? best.session_key : null;
+
+  const found = best !== null && bestDiff < FOUR_DAYS_MS;
+
+  // Log in dev so the browser console shows exact values for debugging (e.g. Round 1 vs others)
+  if (import.meta.env.DEV || !found) {
+    console.info(
+      `[RaceFlow] raceDate="${raceDate}" (${new Date(raceDate).toUTCString()})` +
+      ` → best="${best?.country_name ?? "none"}" diff=${(bestDiff / 3_600_000).toFixed(2)}h` +
+      ` → session_key=${found ? best!.session_key : "null (>4 day window)"}`
+    );
+  }
+
+  return found ? best!.session_key : null;
 }
 
 // ─── Data processing ─────────────────────────────────────────────────────────
@@ -119,7 +140,7 @@ function processData(
     if (!posByDriver.has(pos.driver_number)) posByDriver.set(pos.driver_number, []);
     posByDriver.get(pos.driver_number)!.push(pos);
   }
-  for (const arr of posByDriver.values()) arr.sort((a, b) => a.date.localeCompare(b.date));
+  for (const arr of posByDriver.values()) arr.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const driverNums = [...lapsByDriver.keys()];
 
@@ -170,12 +191,21 @@ function processData(
 
       let pos: number | undefined;
       if (nextLap) {
-        // Find last position record before next lap starts
-        const cutoff = nextLap.date_start;
-        for (const p of driverPositions) {
-          if (p.date <= cutoff) pos = p.position;
-          else break;
+        // Find last position record before next lap starts.
+        // Use getTime() instead of string comparison to handle any ISO format
+        // variants (Z vs +00:00) and to safely treat null date_start as "no cutoff".
+        const cutoffTs = nextLap.date_start !== null
+          ? new Date(nextLap.date_start).getTime()
+          : NaN;
+        if (!isNaN(cutoffTs)) {
+          for (const p of driverPositions) {
+            const pTs = new Date(p.date).getTime();
+            if (pTs <= cutoffTs) pos = p.position;
+            else break;
+          }
         }
+        // If cutoffTs is NaN (null date_start), pos stays undefined for this lap;
+        // recharts connectNulls will bridge the gap.
       } else {
         // Last lap for this driver — use their last known position
         pos = driverPositions[driverPositions.length - 1]?.position;

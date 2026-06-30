@@ -6,6 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 import { useRaceFlow, DriverFlowInfo, FlowDataPoint } from "../hooks/useRaceFlow";
@@ -44,54 +45,41 @@ function FlowSkeleton({ isMobile }: { isMobile: boolean }) {
   );
 }
 
-// ─── Custom Tooltip ──────────────────────────────────────────────────────────
+// ─── Standings Strip ─────────────────────────────────────────────────────────
 
-interface TooltipProps {
-  active?: boolean;
-  payload?: Array<{ dataKey: string; value: number; stroke: string }>;
-  label?: number;
-  drivers: DriverFlowInfo[];
-  activeDrivers: Set<number>;
+interface StandingsStripProps {
+  lap: number;
+  standings: Array<{ driver: DriverFlowInfo; position: number }>;
 }
 
-function CustomTooltip({ active, payload, label, drivers, activeDrivers }: TooltipProps) {
-  if (!active || !payload?.length || label === undefined) return null;
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+}
 
-  const rows = drivers
-    .map((d) => {
-      const item = payload.find((p) => p.dataKey === `d${d.number}`);
-      return { driver: d, position: item?.value };
-    })
-    .filter((r): r is { driver: DriverFlowInfo; position: number } => r.position !== undefined)
-    .sort((a, b) => a.position - b.position);
-
-  const hasSelection = activeDrivers.size > 0;
-  const displayed = hasSelection
-    ? rows.filter((r) => activeDrivers.has(r.driver.number))
-    : rows.slice(0, 8);
-
+function StandingsStrip({ lap, standings }: StandingsStripProps) {
   return (
-    <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg p-2.5 shadow-xl min-w-[120px]">
-      <div className="text-[10px] font-bold text-muted-foreground mb-1.5 font-mono uppercase tracking-widest">
-        Lap {label}
+    <div className="rounded-lg border border-border/30 bg-card/60 backdrop-blur px-2.5 py-2 flex flex-col gap-1.5">
+      <div className="text-[10px] font-mono font-bold text-muted-foreground/70 uppercase tracking-widest">
+        Lap {lap} &bull; Position:
       </div>
-      {displayed.map(({ driver, position }) => (
-        <div key={driver.number} className="flex items-center gap-2 py-0.5">
+      <div className="flex flex-wrap gap-1">
+        {standings.map(({ driver, position }) => (
           <span
-            className="text-[11px] font-black tabular-nums w-7 shrink-0"
-            style={{ color: driver.color }}
+            key={driver.number}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold"
+            style={{
+              backgroundColor: driver.color + "28",
+              color: driver.color,
+              border: `1px solid ${driver.color}55`,
+            }}
           >
-            P{position}
+            <span className="opacity-70">{ordinal(position)}</span>
+            &nbsp;{driver.code}
           </span>
-          <span className="text-[10px] font-bold text-foreground font-mono">{driver.code}</span>
-          <span className="text-[9px] text-muted-foreground/60 font-mono">#{driver.number}</span>
-        </div>
-      ))}
-      {!hasSelection && rows.length > 8 && (
-        <div className="text-[9px] text-muted-foreground/40 mt-1 font-mono">
-          +{rows.length - 8} more · tap line to focus
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
@@ -185,6 +173,7 @@ interface RaceFlowChartProps {
 
 export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   const [activeDrivers, setActiveDrivers] = useState<Set<number>>(new Set());
+  const [scrubbedLap, setScrubbedLap] = useState<number | null>(null);
   const isMobile = useIsMobile();
 
   const flowState = useRaceFlow(raceDate, true);
@@ -228,6 +217,42 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   const { chartData, drivers, pitStops, totalLaps } = flowState;
 
   const hasSelection = activeDrivers.size > 0;
+  const isScrubbing = scrubbedLap !== null;
+
+  // Identify P1/P2/P3 from the final lap data
+  const podiumNumbers = new Set<number>();
+  const lastEntry = chartData[chartData.length - 1];
+  if (lastEntry) {
+    drivers.forEach((d) => {
+      const pos = lastEntry[`d${d.number}`] as number | undefined;
+      if (pos !== undefined && pos <= 3) podiumNumbers.add(d.number);
+    });
+  }
+
+  // Opacity/weight for each driver line
+  function getLineStyle(driverNum: number): { opacity: number; width: number } {
+    if (hasSelection) {
+      const isActive = activeDrivers.has(driverNum);
+      return { opacity: isActive ? 1 : 0.1, width: isActive ? 2.5 : 1 };
+    }
+    if (!isScrubbing) {
+      // Podium-default: only P1/P2/P3 visible
+      const inPodium = podiumNumbers.has(driverNum);
+      return { opacity: inPodium ? 1 : 0.05, width: inPodium ? 2 : 1.2 };
+    }
+    // Scrubbing with no selection — all drivers visible
+    return { opacity: 1, width: 1.5 };
+  }
+
+  // Standings at the currently scrubbed lap
+  function getStandingsAtLap(lap: number) {
+    const entry = chartData.find((d) => (d["lap"] as number) === lap) ?? lastEntry;
+    if (!entry) return [];
+    return drivers
+      .map((d) => ({ driver: d, position: entry[`d${d.number}`] as number | undefined }))
+      .filter((r): r is { driver: DriverFlowInfo; position: number } => r.position !== undefined)
+      .sort((a, b) => a.position - b.position);
+  }
 
   const maxPosition = Math.max(
     20,
@@ -238,41 +263,61 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   const yTicks = [1, 5, 10, 15, 20, ...(maxPosition > 20 ? [maxPosition] : [])];
 
   const sortedDrivers = [...drivers].sort((a, b) => {
-    const lastEntry = chartData[chartData.length - 1];
     const pa = lastEntry?.[`d${a.number}`] ?? 99;
     const pb = lastEntry?.[`d${b.number}`] ?? 99;
-    return pa - pb;
+    return (pa as number) - (pb as number);
   });
 
   // Responsive chart sizing
-  // Mobile: compact tick mark needs only 10px right margin vs 52px desktop pill
   const chartMargin = isMobile
     ? { top: 6, right: 10, left: -28, bottom: 4 }
     : { top: 8, right: 52, left: -22, bottom: 4 };
   const chartHeight = isMobile ? 320 : 420;
 
+  // Chart event handlers for the scrubber
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleChartMouseMove = (data: any) => {
+    if (data?.activeLabel !== undefined) {
+      setScrubbedLap(Number(data.activeLabel));
+    }
+  };
+  const handleChartMouseLeave = () => setScrubbedLap(null);
+
   return (
     <div className="flex flex-col gap-2">
-      {/* Info bar — single line on mobile by abbreviating */}
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 gap-2">
-        <span className="truncate">
-          {isMobile
-            ? `${totalLaps} laps · ${drivers.length} drivers`
-            : `Position by lap · ${totalLaps} laps · ${drivers.length} drivers`}
-        </span>
-        <span className="flex items-center gap-1 shrink-0">
-          <span className="w-3 h-px inline-block bg-muted-foreground/40" />
-          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 inline-block" />
-          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 inline-block" />
-          <span className="w-1 h-1 rounded-full bg-muted-foreground/40 inline-block" />
-          <span>pit</span>
-        </span>
-      </div>
+      {/* Standings strip — shown above chart while scrubbing */}
+      {isScrubbing ? (
+        <StandingsStrip
+          lap={scrubbedLap}
+          standings={getStandingsAtLap(scrubbedLap)}
+        />
+      ) : (
+        /* Info bar — shown when not scrubbing */
+        <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/60 gap-2">
+          <span className="truncate">
+            {isMobile
+              ? `${totalLaps} laps · ${drivers.length} drivers`
+              : `Position by lap · ${totalLaps} laps · ${drivers.length} drivers`}
+          </span>
+          <span className="flex items-center gap-1 shrink-0">
+            <span className="w-3 h-px inline-block bg-muted-foreground/40" />
+            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 inline-block" />
+            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 inline-block" />
+            <span className="w-1 h-1 rounded-full bg-muted-foreground/40 inline-block" />
+            <span>pit</span>
+          </span>
+        </div>
+      )}
 
       {/* Chart */}
       <div className="w-full select-none" style={{ touchAction: "pan-y" }}>
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <LineChart data={chartData} margin={chartMargin}>
+          <LineChart
+            data={chartData}
+            margin={chartMargin}
+            onMouseMove={handleChartMouseMove}
+            onMouseLeave={handleChartMouseLeave}
+          >
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="rgba(255,255,255,0.05)"
@@ -299,16 +344,29 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
               tickFormatter={(v: number) => `P${v}`}
               width={isMobile ? 24 : 28}
             />
+
+            {/* Tooltip — cursor provides the vertical scrubber line; content hidden (standings strip replaces it) */}
             <Tooltip
-              content={
-                <CustomTooltip drivers={drivers} activeDrivers={activeDrivers} />
-              }
-              cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1, strokeDasharray: "4 2" }}
+              content={() => null}
+              cursor={{
+                stroke: "rgba(255,255,255,0.25)",
+                strokeWidth: 1,
+                strokeDasharray: "4 2",
+              }}
             />
 
+            {/* Scrubber reference line */}
+            {isScrubbing && (
+              <ReferenceLine
+                x={scrubbedLap}
+                stroke="rgba(255,255,255,0.15)"
+                strokeWidth={1}
+              />
+            )}
+
             {drivers.map((driver) => {
-              const isActive = activeDrivers.has(driver.number);
-              const isFaded = hasSelection && !isActive;
+              const { opacity, width } = getLineStyle(driver.number);
+              const isFaded = opacity < 0.5;
 
               return (
                 <Line
@@ -316,8 +374,8 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                   type="monotone"
                   dataKey={`d${driver.number}`}
                   stroke={driver.color}
-                  strokeWidth={isActive ? 2.5 : isFaded ? 1 : 1.5}
-                  strokeOpacity={isFaded ? 0.1 : 1}
+                  strokeWidth={width}
+                  strokeOpacity={opacity}
                   dot={(props: object) => (
                     <PitDot
                       {...(props as PitDotProps)}
@@ -332,6 +390,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                     stroke: driver.color,
                     strokeWidth: 2,
                     fill: "hsl(var(--background))",
+                    opacity: opacity,
                   }}
                   connectNulls
                   isAnimationActive={false}
@@ -353,12 +412,11 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
         </ResponsiveContainer>
       </div>
 
-      {/* Driver legend
-          Desktop: wraps into multiple rows
-          Mobile:  single row, scrolls horizontally */}
+      {/* Driver legend — wrap into multiple rows, 5-wide chips */}
       <div className="flex flex-wrap gap-1 border-t border-border/20 pt-1.5">
         {sortedDrivers.map((driver) => {
           const isActive = activeDrivers.has(driver.number);
+          const { opacity } = getLineStyle(driver.number);
           const isFaded = hasSelection && !isActive;
           return (
             <button
@@ -369,7 +427,8 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                 isActive
                   ? "border-white/20 bg-white/5"
                   : "border-transparent hover:bg-white/5"
-              } ${isFaded ? "opacity-20" : "opacity-100"}`}
+              }`}
+              style={{ opacity: isFaded ? 0.2 : Math.max(opacity, 0.35) }}
             >
               <span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -390,7 +449,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
       </div>
 
       <div className="text-[9px] text-muted-foreground/30 font-mono">
-        Data: OpenF1 · Circles = pit stops · Tap drivers to compare
+        Data: OpenF1 · Circles = pit stops · Tap drivers to compare · Hover chart to scrub laps
       </div>
     </div>
   );

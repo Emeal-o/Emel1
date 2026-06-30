@@ -15,13 +15,11 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 
 function FlowSkeleton() {
   return (
-    <div className="flex flex-col gap-4 animate-pulse">
-      {/* Chart area */}
-      <div className="w-full h-[340px] rounded-lg bg-muted/20 border border-border/30" />
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-3 animate-pulse">
+      <div className="w-full h-[400px] rounded-lg bg-muted/20 border border-border/30" />
+      <div className="flex flex-wrap gap-1">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="h-6 w-16 rounded bg-muted/20" />
+          <div key={i} className="h-5 w-12 rounded bg-muted/20" />
         ))}
       </div>
     </div>
@@ -35,13 +33,12 @@ interface TooltipProps {
   payload?: Array<{ dataKey: string; value: number; stroke: string }>;
   label?: number;
   drivers: DriverFlowInfo[];
-  activeDriver: number | null;
+  activeDrivers: Set<number>;
 }
 
-function CustomTooltip({ active, payload, label, drivers, activeDriver }: TooltipProps) {
+function CustomTooltip({ active, payload, label, drivers, activeDrivers }: TooltipProps) {
   if (!active || !payload?.length || label === undefined) return null;
 
-  // Build list of driver positions from payload, sorted by position
   const rows = drivers
     .map((d) => {
       const item = payload.find((p) => p.dataKey === `d${d.number}`);
@@ -50,8 +47,11 @@ function CustomTooltip({ active, payload, label, drivers, activeDriver }: Toolti
     .filter((r): r is { driver: DriverFlowInfo; position: number } => r.position !== undefined)
     .sort((a, b) => a.position - b.position);
 
-  // If a driver is selected, only show them (cleaner UX)
-  const displayed = activeDriver !== null ? rows.filter((r) => r.driver.number === activeDriver) : rows.slice(0, 8);
+  // Show only selected drivers when a selection exists; otherwise top 8
+  const hasSelection = activeDrivers.size > 0;
+  const displayed = hasSelection
+    ? rows.filter((r) => activeDrivers.has(r.driver.number))
+    : rows.slice(0, 8);
 
   return (
     <div className="bg-card/95 backdrop-blur border border-border/60 rounded-lg p-2.5 shadow-xl min-w-[130px]">
@@ -70,7 +70,7 @@ function CustomTooltip({ active, payload, label, drivers, activeDriver }: Toolti
           <span className="text-[9px] text-muted-foreground/60 font-mono">#{driver.number}</span>
         </div>
       ))}
-      {!activeDriver && rows.length > 8 && (
+      {!hasSelection && rows.length > 8 && (
         <div className="text-[9px] text-muted-foreground/40 mt-1 font-mono">
           +{rows.length - 8} more · click line to focus
         </div>
@@ -88,17 +88,23 @@ interface PitDotProps {
   driverNum: number;
   color: string;
   pitStops: Map<number, Set<number>>;
+  isFaded: boolean;
 }
 
-function PitDot({ cx, cy, payload, driverNum, color, pitStops }: PitDotProps) {
+function PitDot({ cx, cy, payload, driverNum, color, pitStops, isFaded }: PitDotProps) {
   if (cx === undefined || cy === undefined || !payload) return null;
   const lap = payload["lap"] as number;
   if (!pitStops.get(driverNum)?.has(lap)) return null;
 
+  // Dim non-selected markers to match the line's dimmed opacity (~15%)
+  const opacity = isFaded ? 0.15 : 1;
+
   return (
-    <g>
-      <circle cx={cx} cy={cy} r={6} fill="none" stroke={color} strokeWidth={1.5} strokeOpacity={0.7} />
-      <circle cx={cx} cy={cy} r={3} fill={color} fillOpacity={0.9} />
+    <g opacity={opacity}>
+      {/* Outer ring — slightly smaller than before (r 6→4) */}
+      <circle cx={cx} cy={cy} r={4} fill="none" stroke={color} strokeWidth={1.5} />
+      {/* Inner filled dot — r 3→2 */}
+      <circle cx={cx} cy={cy} r={2} fill={color} />
     </g>
   );
 }
@@ -112,9 +118,10 @@ interface EndBadgeProps {
   value?: number;
   driver: DriverFlowInfo;
   totalLaps: number;
+  isFaded: boolean;
 }
 
-function EndBadge({ x, y, index, value, driver, totalLaps }: EndBadgeProps) {
+function EndBadge({ x, y, index, value, driver, totalLaps, isFaded }: EndBadgeProps) {
   if (x === undefined || y === undefined || index !== totalLaps - 1 || value === undefined) {
     return null;
   }
@@ -123,7 +130,7 @@ function EndBadge({ x, y, index, value, driver, totalLaps }: EndBadgeProps) {
   const h = 14;
 
   return (
-    <g>
+    <g opacity={isFaded ? 0.15 : 1}>
       <rect x={x + 5} y={y - h / 2} width={w} height={h} rx={3} fill={driver.color} fillOpacity={0.9} />
       <text
         x={x + 5 + w / 2}
@@ -144,19 +151,28 @@ function EndBadge({ x, y, index, value, driver, totalLaps }: EndBadgeProps) {
 // ─── Main chart component ─────────────────────────────────────────────────────
 
 interface RaceFlowChartProps {
-  /** ISO timestamp of the race session (used to look up OpenF1 session key) */
   raceDate: string;
 }
 
 export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
-  const [activeDriver, setActiveDriver] = useState<number | null>(null);
-  // Component is only mounted when the Race Flow tab is active, so always enable
+  // Multi-select: Set of driver numbers currently highlighted
+  const [activeDrivers, setActiveDrivers] = useState<Set<number>>(new Set());
+
   const flowState = useRaceFlow(raceDate, true);
+
+  const handleDriverClick = (num: number) => {
+    setActiveDrivers((prev) => {
+      const next = new Set(prev);
+      if (next.has(num)) next.delete(num);
+      else next.add(num);
+      return next;
+    });
+  };
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (flowState.status === "idle" || flowState.status === "loading") {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <FlowSkeleton />
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
           <RefreshCw className="w-3 h-3 animate-spin" />
@@ -182,10 +198,9 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   // ── Success ──────────────────────────────────────────────────────────────
   const { chartData, drivers, pitStops, totalLaps } = flowState;
 
-  const handleDriverClick = (num: number) =>
-    setActiveDriver((prev) => (prev === num ? null : num));
+  const hasSelection = activeDrivers.size > 0;
 
-  // Dynamic Y-axis domain: at least P1–P20, extended if field has more cars (e.g. 22 starters)
+  // Dynamic Y-axis: at least P1–P20, extended if more cars started
   const maxPosition = Math.max(
     20,
     ...drivers.flatMap((d) =>
@@ -194,7 +209,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   );
   const yTicks = [1, 5, 10, 15, 20, ...(maxPosition > 20 ? [maxPosition] : [])];
 
-  // Sort driver legend by final position
+  // Sort legend by final position
   const sortedDrivers = [...drivers].sort((a, b) => {
     const lastEntry = chartData[chartData.length - 1];
     const pa = lastEntry?.[`d${a.number}`] ?? 99;
@@ -203,8 +218,8 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Info bar */}
+    <div className="flex flex-col gap-2">
+      {/* Info bar + pit-stop key on same row */}
       <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground/60">
         <span>Position by lap · {totalLaps} laps · {drivers.length} drivers</span>
         <span className="flex items-center gap-1">
@@ -216,9 +231,9 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
         </span>
       </div>
 
-      {/* Chart */}
+      {/* Chart — taller to give lines more room */}
       <div className="w-full select-none" style={{ touchAction: "pan-y" }}>
-        <ResponsiveContainer width="100%" height={360}>
+        <ResponsiveContainer width="100%" height={420}>
           <LineChart
             data={chartData}
             margin={{ top: 8, right: 52, left: -22, bottom: 4 }}
@@ -253,15 +268,15 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
               content={
                 <CustomTooltip
                   drivers={drivers}
-                  activeDriver={activeDriver}
+                  activeDrivers={activeDrivers}
                 />
               }
               cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1, strokeDasharray: "4 2" }}
             />
 
             {drivers.map((driver) => {
-              const isActive = activeDriver === driver.number;
-              const isFaded = activeDriver !== null && !isActive;
+              const isActive = activeDrivers.has(driver.number);
+              const isFaded = hasSelection && !isActive;
 
               return (
                 <Line
@@ -277,6 +292,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                       driverNum={driver.number}
                       color={driver.color}
                       pitStops={pitStops}
+                      isFaded={isFaded}
                     />
                   )}
                   activeDot={{
@@ -295,6 +311,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
                       {...(props as EndBadgeProps)}
                       driver={driver}
                       totalLaps={totalLaps}
+                      isFaded={isFaded}
                     />
                   )}
                 />
@@ -304,35 +321,34 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
         </ResponsiveContainer>
       </div>
 
-      {/* Driver legend */}
-      <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/20">
+      {/* Driver legend — compact pills */}
+      <div className="flex flex-wrap gap-1 border-t border-border/20 pt-1.5">
         {sortedDrivers.map((driver) => {
-          const isFaded = activeDriver !== null && activeDriver !== driver.number;
+          const isActive = activeDrivers.has(driver.number);
+          const isFaded = hasSelection && !isActive;
           return (
             <button
               key={driver.number}
               onClick={() => handleDriverClick(driver.number)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono transition-all duration-150 border ${
-                activeDriver === driver.number
+              title={`${driver.code} #${driver.number} · ${driver.teamName}`}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-all duration-150 border ${
+                isActive
                   ? "border-white/20 bg-white/5"
                   : "border-transparent hover:bg-white/5"
-              } ${isFaded ? "opacity-25" : "opacity-100"}`}
+              } ${isFaded ? "opacity-20" : "opacity-100"}`}
             >
               <span
-                className="w-2 h-2 rounded-full shrink-0"
+                className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ backgroundColor: driver.color }}
               />
-              <span className="font-bold" style={{ color: driver.color }}>
-                {driver.code}
-              </span>
-              <span className="text-muted-foreground/50">#{driver.number}</span>
+              <span style={{ color: driver.color }}>{driver.code}</span>
             </button>
           );
         })}
-        {activeDriver !== null && (
+        {hasSelection && (
           <button
-            onClick={() => setActiveDriver(null)}
-            className="px-2 py-1 rounded-md text-[10px] font-mono text-muted-foreground hover:text-foreground border border-border/30 hover:border-border transition-colors"
+            onClick={() => setActiveDrivers(new Set())}
+            className="px-1.5 py-0.5 rounded text-[9px] font-mono text-muted-foreground hover:text-foreground border border-border/30 hover:border-border transition-colors"
           >
             Clear
           </button>
@@ -340,7 +356,7 @@ export default function RaceFlowChart({ raceDate }: RaceFlowChartProps) {
       </div>
 
       <div className="text-[9px] text-muted-foreground/30 font-mono">
-        Data: OpenF1 · Circles indicate pit stop laps · Click driver to focus
+        Data: OpenF1 · Circles indicate pit stop laps · Click drivers to compare
       </div>
     </div>
   );

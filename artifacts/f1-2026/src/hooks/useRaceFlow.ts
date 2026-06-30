@@ -300,25 +300,34 @@ export function useRaceFlow(raceDate: string, enabled: boolean): RaceFlowState {
           return;
         }
 
-        // Step 2: fetch positions + laps + drivers + stints in parallel
-        const [posRes, lapRes, driverRes, stintRes] = await Promise.all([
+        // Step 2: fetch positions + laps + drivers in parallel (critical path)
+        const [posRes, lapRes, driverRes] = await Promise.all([
           fetch(`https://api.openf1.org/v1/position?session_key=${sessionKey}`),
           fetch(`https://api.openf1.org/v1/laps?session_key=${sessionKey}`),
           fetch(`https://api.openf1.org/v1/drivers?session_key=${sessionKey}`),
-          fetch(`https://api.openf1.org/v1/stints?session_key=${sessionKey}`),
         ]);
 
         if (!posRes.ok || !lapRes.ok || !driverRes.ok) {
-          throw new Error("Failed to fetch race telemetry from OpenF1");
+          const failed = [
+            !posRes.ok && `positions (${posRes.status})`,
+            !lapRes.ok && `laps (${lapRes.status})`,
+            !driverRes.ok && `drivers (${driverRes.status})`,
+          ].filter(Boolean).join(", ");
+          throw new Error(`OpenF1 returned an error for: ${failed}. Data may not be available yet.`);
         }
 
-        const [positions, laps, driverList, stints]: [OF1Position[], OF1Lap[], OF1Driver[], OF1Stint[]] =
-          await Promise.all([
-            posRes.json(),
-            lapRes.json(),
-            driverRes.json(),
-            stintRes.ok ? stintRes.json() : Promise.resolve([]),
-          ]);
+        const [positions, laps, driverList]: [OF1Position[], OF1Lap[], OF1Driver[]] =
+          await Promise.all([posRes.json(), lapRes.json(), driverRes.json()]);
+
+        // Step 3: fetch stints separately after critical data — best-effort only,
+        // failures here never block the chart from rendering.
+        let stints: OF1Stint[] = [];
+        try {
+          const stintRes = await fetch(`https://api.openf1.org/v1/stints?session_key=${sessionKey}`);
+          if (stintRes.ok) stints = await stintRes.json();
+        } catch {
+          // stints unavailable — pit compound pills will be hidden, chart still works
+        }
 
         if (cancelled) return;
 
